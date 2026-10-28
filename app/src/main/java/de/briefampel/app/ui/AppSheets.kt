@@ -111,6 +111,11 @@ private fun Settings(s: UiState, model: BriefampelViewModel) {
         Text("Dunkle Darstellung", style = Schrift.Text, color = c.tinte, modifier = Modifier.weight(1f))
         Switch(checked = s.dark, onCheckedChange = { model.dark() })
     }
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Text("Intro-Ton beim Start", style = Schrift.Text, color = c.tinte, modifier = Modifier.weight(1f))
+        Switch(checked = s.introTon, onCheckedChange = model::introTon)
+    }
+    Text("Spielt nicht, wenn das Handy stumm ist oder gerade Musik läuft.", style = Schrift.TextKlein, color = c.tinteLeise)
     HorizontalDivider(color = c.linie)
     Eyebrow("SPERRE & VERLAUF")
     val context = androidx.compose.ui.platform.LocalContext.current

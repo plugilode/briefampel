@@ -47,6 +47,9 @@ data class UiState(
     val configuringApi: Boolean = false,
     val apiMessage: String? = null,
     val showIntro: Boolean = false,
+    /** Kurzes Marken-Intro bei jedem weiteren Start (das lange Intro gibt es nur beim ersten Mal). */
+    val kurzIntro: Boolean = false,
+    val introTon: Boolean = true,
     val checkedAt: String = "",
     val sperre: Sperre = Sperre.OFFEN,
     val biometrie: Boolean = false,
@@ -73,6 +76,8 @@ class BriefampelViewModel @JvmOverloads constructor(
     private val mutable = MutableStateFlow(UiState(sender = store.sender, dark = store.dark, consent = store.consent,
         configured = isConfigured(), personalApi = personalApi.configured, personalApiSupported = personalApi.supported,
         showIntro = !store.introSeen,
+        kurzIntro = store.introSeen,
+        introTon = store.introTon,
         remaining = store.usage.remaining(today().toString()),
         sperre = when { !zugang.aktiv -> Sperre.OFFEN; !zugang.eingerichtet -> Sperre.EINRICHTEN; else -> Sperre.GESPERRT },
         biometrie = zugang.biometrie))
@@ -187,6 +192,8 @@ class BriefampelViewModel @JvmOverloads constructor(
     fun error(text: String) { mutable.update { it.copy(error = text) } }
     fun clearError() { mutable.update { it.copy(error = null) } }
     fun finishIntro() { store.introSeen = true; mutable.update { it.copy(showIntro = false) } }
+    fun kurzIntroFertig() { mutable.update { it.copy(kurzIntro = false) } }
+    fun introTon(an: Boolean) { store.introTon = an; mutable.update { it.copy(introTon = an) } }
     fun replayIntro() { mutable.update { it.copy(showIntro = true, sheet = null) } }
     fun dark() { store.dark = !state.value.dark; mutable.update { it.copy(dark = store.dark) } }
     fun sender(sender: Sender) { store.sender = sender; mutable.update { it.copy(sender = sender) } }

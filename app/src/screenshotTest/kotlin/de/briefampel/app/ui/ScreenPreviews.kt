@@ -4,6 +4,11 @@ import android.app.Application
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.compose.runtime.Composable
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
@@ -184,4 +189,23 @@ private fun verlaufBeispiel(): List<de.briefampel.app.data.VerlaufEintrag> {
 @Composable fun VerlaufEintragScreenshot() = verlaufBeispiel().let { v ->
     Capture(base().copy(screen = Screen.RESULT, verlauf = v, eintragId = "rot", ausVerlauf = true,
         result = GepruefterBrief(v[0].analyse, "", 3)), bottom = true)
+}
+
+@PreviewTest @Preview(name = "28_Antwort_denkt_nach", widthDp = 412, heightDp = 915, locale = "de", showSystemUi = true)
+@Composable fun DenktNachScreenshot() = Capture(base().copy(screen = Screen.REPLY, result = Beispiele.fuer(Ampel.ROT, today()), consent = true,
+    keywords = "Forderung bestreiten\nVertrag und Rechnung anfordern", writing = true, reply = ""), bottom = true)
+
+@PreviewTest @Preview(name = "29_Kurzintro", widthDp = 412, heightDp = 915, locale = "de", showSystemUi = true)
+@Composable fun KurzIntroScreenshot() = Capture(base().copy(kurzIntro = true))
+
+@PreviewTest @Preview(name = "30_Regenschirm", widthDp = 412, heightDp = 640, locale = "de")
+@Composable fun RegenschirmScreenshot() = BriefampelTheme(dunkel = true) {
+    androidx.compose.foundation.layout.Box(
+        androidx.compose.ui.Modifier.fillMaxSize().background(de.briefampel.app.ui.theme.DunkleFarben.grund),
+        contentAlignment = androidx.compose.ui.Alignment.Center,
+    ) {
+        androidx.compose.foundation.layout.Box {
+            de.briefampel.app.ui.figur.AmpelFreundin(de.briefampel.app.ui.figur.Stimmung.WARTET, "Briefampel mit Regenschirm", androidx.compose.ui.Modifier.offset(y = 80.dp), lampe = 60.dp, arme = true, schirm = 1f)
+        }
+    }
 }
