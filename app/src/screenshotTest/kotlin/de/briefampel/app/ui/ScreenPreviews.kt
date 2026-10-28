@@ -71,7 +71,7 @@ private fun Capture(state: UiState, bottom: Boolean = false, sheetBottom: Boolea
             override val configured = false
             override fun save(key: String) = error("Read-only screenshot")
             override fun clear() = Unit
-        }, zugang = de.briefampel.app.data.OffenerZugang, verlauf = de.briefampel.app.data.FluechtigerVerlauf())
+        }, zugang = de.briefampel.app.data.OffenerZugang, verlauf = de.briefampel.app.data.FluechtigerVerlauf(), konto = null)
     }
     BriefampelTheme(dunkel = state.dark) { BriefampelLayout(state, model, initialScroll = if (bottom) Int.MAX_VALUE else 0, initialSheetScroll = if (sheetBottom) Int.MAX_VALUE else 0) }
 }
@@ -215,3 +215,16 @@ private fun verlaufBeispiel(): List<de.briefampel.app.data.VerlaufEintrag> {
 
 @PreviewTest @Preview(name = "32_Start_Guthaben_leer", widthDp = 412, heightDp = 915, locale = "de", showSystemUi = true)
 @Composable fun StartOhneGuthabenScreenshot() = Capture(base().copy(guthaben = 0))
+
+@PreviewTest @Preview(name = "33_Start_Meine_Briefe", widthDp = 412, heightDp = 915, locale = "de", showSystemUi = true)
+@Composable fun StartMeineBriefeScreenshot() = Capture(base().copy(verlauf = verlaufBeispiel(), configured = true, personalApi = true))
+
+@PreviewTest @Preview(name = "40_Anmelden", widthDp = 412, heightDp = 915, locale = "de", showSystemUi = true)
+@Composable fun AnmeldenScreenshot() = Capture(base().copy(sheet = Sheet.ANMELDEN, serverModus = true, configured = true))
+
+@PreviewTest @Preview(name = "41_Pakete_Kaufen", widthDp = 412, heightDp = 915, locale = "de", showSystemUi = true)
+@Composable fun PaketeKaufenScreenshot() = Capture(base().copy(sheet = Sheet.PAKETE, guthaben = 0, serverModus = true, configured = true, angemeldet = true,
+    preise = mapOf("analysen_10" to "1,99 €", "analysen_30" to "4,99 €", "analysen_100" to "9,99 €")), sheetBottom = true)
+
+@PreviewTest @Preview(name = "42_Einstellungen_Konto", widthDp = 412, heightDp = 915, locale = "de", showSystemUi = true)
+@Composable fun EinstellungenKontoScreenshot() = Capture(base().copy(sheet = Sheet.SETTINGS, serverModus = true, configured = true, angemeldet = true, email = "ana@example.com"))

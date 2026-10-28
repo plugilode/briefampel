@@ -86,16 +86,19 @@ Reihenfolge, damit nichts blockiert:
 5. In der Play Console die **Produkte anlegen** als „Verbrauchsartikel“: `analysen_10` (1,99 €), `analysen_30` (4,99 €), `analysen_100` (9,99 €). Das Abo kommt später.
 6. Mir sagen, wenn das steht. Dann brauche ich die `google-services.json` (die ist nicht geheim, kommt aber nicht in Git) und richte den Rest mit dir ein.
 
-Steuern: Einnahmen sind steuerpflichtig. Für den Anfang reicht meist die Kleinunternehmerregelung; Google führt die Umsatzsteuer gegenüber Käufern in der EU selbst ab. Im Zweifel kurz einen Steuerberater fragen.
+**Wohnsitz Mexiko (Stand 28.10.2026):**
+- Google-Konto und Zahlungsprofil mit **Land Mexiko** anlegen. Das Land eines Zahlungsprofils lässt sich später nicht ändern, und die Karte muss zum Profil-Land passen. Bei mexikanischen Karten in der Banking-App **„compras en línea“ und „compras internacionales“** freischalten.
+- **Steuern:** Einnahmen sind in Mexiko steuerpflichtig. Dafür braucht es in der Regel einen RFC beim SAT, und Google kann Steuern einbehalten. Bitte mit einem *contador* klären. Die Mehrwertsteuer der Käufer in der EU führt Google Play selbst ab.
+- **Datenschutz:** Die App richtet sich an Nutzer in Deutschland und der EU, deshalb gilt die DSGVO. Nötig sind eine Datenschutzerklärung und Anbieterangaben. Der Serverstandort Frankfurt passt dazu.
 
 ## Was ich baue (geht schon vor deinen Konten)
 
 | Schritt | Inhalt |
 |---|---|
 | A ✅ | **Ehrliche Kostenanzeige in der App**: „Noch 3 von 3 Gratis-Briefen“, Guthaben im Kopf, ein Paket-Bildschirm mit Preisen. Vor dem letzten Gratis-Brief kommt ein freundlicher Hinweis. |
-| B | **Anmelden mit Google** (Android Credential Manager) als eigener Schritt vor dem ersten Kauf, nicht vor dem ersten Brief. Die Gratis-Briefe gehen ohne Anmeldung. |
-| C | **Google Play Billing** in der App: Pakete laden, kaufen, Kauf an den Server schicken. |
-| D | **Firebase Functions** (TypeScript): Kauf prüfen, Guthaben buchen, Gemini über den Server aufrufen, Tagesgrenze, Rückbuchung bei Fehlern. Dazu Tests mit dem Firebase-Emulator. |
-| E | **Release-Variante** nutzt nur noch den Server. Der eigene Schlüssel bleibt allein in der Debug-Test-APK. |
+| B ✅ | **Anmelden mit Google** (Android Credential Manager), einmal vor dem ersten Brief. Geändert gegenüber dem ersten Plan: Auch die Gratis-Briefe laufen über den Server (der Schlüssel darf nie in die App), und ohne Konto könnte jemand durch Neuinstallieren endlos gratis prüfen. Danach geht jeder Scan ohne Zwischenschritt direkt zur Ampel. |
+| C ✅ | **Google Play Billing** in der App: Pakete laden, kaufen, Kauf an den Server schicken. |
+| D ✅ | **Firebase Functions** (TypeScript): Kauf prüfen, Guthaben buchen, Gemini über den Server aufrufen, Tagesgrenze, Rückbuchung bei Fehlern. Dazu Tests mit dem Firebase-Emulator. |
+| E ✅ | **Release-Variante** nutzt nur noch den Server. Der eigene Schlüssel bleibt allein in der Debug-Test-APK. |
 
-A, B (ohne echte Konten), C (gegen Testprodukte) und D (lokal im Emulator) baue und teste ich, bevor deine Konten fertig sind. Live geht es erst mit deinen Konten und einem geschlossenen Test (12 Tester, 14 Tage).
+A bis E sind gebaut und mit Tests abgesichert (App: 73 Tests, Server: 13 Tests), aber noch nicht gegen echte Konten gelaufen. Die Schritte zum Einschalten stehen in [EINRICHTUNG.md](EINRICHTUNG.md). Live geht es erst mit deinen Konten und einem geschlossenen Test (12 Tester, 14 Tage).

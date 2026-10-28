@@ -6,6 +6,9 @@ plugins {
     id("com.android.compose.screenshot")
 }
 
+// Firebase wird nur eingebunden, wenn die eigene google-services.json vorliegt (nicht in Git).
+if (file("google-services.json").exists()) apply(plugin = "com.google.gms.google-services")
+
 // Persönliche Testeinstellungen aus local.properties (nicht in Git).
 val lokal = Properties().apply {
     rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
@@ -27,6 +30,8 @@ android {
         versionName = "0.3.0"
         buildConfigField("String", "AI_MODEL", "\"${einstellung("briefampel.model", "gemini-3.5-flash")}\"")
         buildConfigField("String", "AI_MODEL_FALLBACK", "\"${einstellung("briefampel.fallbackModel", "gemini-3.5-flash-lite")}\"")
+        // Adresse des eigenen Servers (Firebase Functions), z. B. https://europe-west3-PROJEKT.cloudfunctions.net/api
+        buildConfigField("String", "SERVER_URL", "\"${einstellung("briefampel.server", "")}\"")
         buildConfigField("String", "AI_REGION", "\"${einstellung("briefampel.region", "eu")}\"")
     }
 
@@ -60,6 +65,15 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.core.splashscreen)
     implementation("androidx.biometric:biometric:1.1.0")
+    implementation(platform("com.google.firebase:firebase-bom:35.1.0"))
+    implementation("com.google.firebase:firebase-auth")
+    implementation("com.google.firebase:firebase-appcheck-playintegrity")
+    debugImplementation("com.google.firebase:firebase-appcheck-debug")
+    implementation("androidx.credentials:credentials:1.6.0")
+    implementation("androidx.credentials:credentials-play-services-auth:1.6.0")
+    implementation("com.google.android.libraries.identity.googleid:googleid:1.2.1")
+    implementation("com.android.billingclient:billing-ktx:9.1.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.11.0")
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
