@@ -92,7 +92,7 @@ Steuern: Einnahmen sind steuerpflichtig. Für den Anfang reicht meist die Kleinu
 
 | Schritt | Inhalt |
 |---|---|
-| A | **Ehrliche Kostenanzeige in der App**: „Noch 3 von 3 Gratis-Briefen“, Guthaben im Kopf, ein Paket-Bildschirm mit Preisen. Vor dem letzten Gratis-Brief kommt ein freundlicher Hinweis. |
+| A ✅ | **Ehrliche Kostenanzeige in der App**: „Noch 3 von 3 Gratis-Briefen“, Guthaben im Kopf, ein Paket-Bildschirm mit Preisen. Vor dem letzten Gratis-Brief kommt ein freundlicher Hinweis. |
 | B | **Anmelden mit Google** (Android Credential Manager) als eigener Schritt vor dem ersten Kauf, nicht vor dem ersten Brief. Die Gratis-Briefe gehen ohne Anmeldung. |
 | C | **Google Play Billing** in der App: Pakete laden, kaufen, Kauf an den Server schicken. |
 | D | **Firebase Functions** (TypeScript): Kauf prüfen, Guthaben buchen, Gemini über den Server aufrufen, Tagesgrenze, Rückbuchung bei Fehlern. Dazu Tests mit dem Firebase-Emulator. |

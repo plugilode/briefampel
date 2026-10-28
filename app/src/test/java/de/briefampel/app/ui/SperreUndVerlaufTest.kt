@@ -122,4 +122,31 @@ class SperreUndVerlaufTest {
         assertTrue(speicher.lade().isEmpty())
         assertFalse(zugang.eingerichtet)
     }
+
+    @Test fun `fourth reply to the same letter costs one more analysis`() = runTest(dispatcher) {
+        val model = BriefampelViewModel(app, fake, true, ioDispatcher = dispatcher, zugang = OffenerZugang, verlauf = FluechtigerVerlauf())
+        assertEquals(Guthaben.START, model.state.value.guthaben)
+        model.setText("Mein Testbrief")
+        model.analyze(); model.consent(); runCurrent()
+        assertEquals(2, model.state.value.guthaben)
+        model.openReply(); model.keywords("Vertrag anfordern")
+        repeat(3) { model.write(); advanceUntilIdle() }
+        assertEquals("drei Antworten sind in der Analyse enthalten", 2, model.state.value.guthaben)
+        assertEquals(0, model.freieAntworten())
+        model.write(); advanceUntilIdle()
+        assertEquals(1, model.state.value.guthaben)
+        assertEquals(2, model.freieAntworten())
+    }
+
+    @Test fun `without credit an extra reply opens the packages and sends nothing`() = runTest(dispatcher) {
+        val model = BriefampelViewModel(app, fake, true, ioDispatcher = dispatcher, zugang = OffenerZugang, verlauf = FluechtigerVerlauf())
+        model.setText("Brief A"); model.analyze(); model.consent(); runCurrent()
+        model.openReply(); model.keywords("Punkt")
+        repeat(3) { model.write(); advanceUntilIdle() }
+        app.getSharedPreferences("briefampel_private", Context.MODE_PRIVATE).edit().putInt("guthaben", 0).commit()
+        val vorher = fake.drafts
+        model.write(); runCurrent()
+        assertEquals(vorher, fake.drafts)
+        assertEquals(Sheet.PAKETE, model.state.value.sheet)
+    }
 }

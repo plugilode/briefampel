@@ -2,7 +2,7 @@ package de.briefampel.app.data
 
 import android.content.Context
 import de.briefampel.app.domain.Sender
-import de.briefampel.app.domain.Usage
+import de.briefampel.app.domain.Guthaben
 
 /** Only preferences live on disk. Letter text, pages and generated replies stay in memory. */
 class LocalStore(context: Context) {
@@ -22,7 +22,8 @@ class LocalStore(context: Context) {
     var sender: Sender
         get() = Sender(prefs.getString("name", "").orEmpty(), prefs.getString("address", "").orEmpty(), prefs.getString("email", "").orEmpty())
         set(value) { prefs.edit().putString("name", value.name).putString("address", value.address).putString("email", value.email).apply() }
-    var usage: Usage
-        get() = Usage(prefs.getString("usage_date", "").orEmpty(), prefs.getInt("usage_count", 0))
-        set(value) { prefs.edit().putString("usage_date", value.date).putInt("usage_count", value.count).apply() }
+    /** Verbleibende Analysen. Neue Installationen starten mit dem Gratis-Startguthaben. */
+    var guthaben: Int
+        get() = prefs.getInt("guthaben", Guthaben.START)
+        set(value) { prefs.edit().putInt("guthaben", value.coerceAtLeast(0)).apply() }
 }

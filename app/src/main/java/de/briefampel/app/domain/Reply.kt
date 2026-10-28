@@ -13,7 +13,3 @@ fun toggleKeyword(text: String, keyword: String): String {
     else listOf(text.trim(), keyword).filter(String::isNotEmpty).joinToString("\n")
 }
 
-data class Usage(val date: String = "", val count: Int = 0) {
-    fun remaining(today: String): Int = (3 - if (date == today) count else 0).coerceIn(0, 3)
-    fun consume(today: String) = Usage(today, if (date == today) count + 1 else 1)
-}

@@ -11,6 +11,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -62,6 +64,7 @@ private fun SheetContent(s: UiState, model: BriefampelViewModel, sheet: Sheet, i
                 Sheet.SETTINGS -> Settings(s, model)
                 Sheet.PASTE -> Paste(s, model)
                 Sheet.ORIGINAL -> Original(s, model)
+                Sheet.PAKETE -> Pakete(s, model)
             }
         }
 }
@@ -75,7 +78,8 @@ private fun Consent(s: UiState, model: BriefampelViewModel) {
     Info("GEHT AN", if (s.personalApi) "Google Gemini Developer API · keine festgelegte EU-Region" else "Google Gemini Developer API · keine festgelegte EU-Region")
     Info("AUF DEINEM HANDY", "Absenderdaten und Einwilligung werden lokal gespeichert. Original und Entwurf bleiben nur für die aktuelle Sitzung im Arbeitsspeicher.")
     Info("BEIM ANBIETER", "Für die Verarbeitung und Aufbewahrung gelten die Bedingungen des eingerichteten Google-Dienstes. Es gibt keine Zusage, dass keinerlei technische Protokolle entstehen.")
-    Info("KOSTET", if (s.personalApi) "Die API-Nutzung läuft über dein Google-Projekt und kann Kosten verursachen. Das App-Limit erlaubt drei erfolgreiche Prüfungen täglich; Antwortentwürfe zählen zusätzlich bei Google." else "Drei Prüfungen pro Tag sind in dieser Version frei.")
+    Info("KOSTET", "1 Analyse aus deinem Guthaben (noch ${s.guthaben}). Darin sind bis zu 3 Antwortentwürfe zu diesem Brief enthalten. Schlägt die Prüfung fehl, wird nichts abgezogen." +
+        if (s.personalApi) " In dieser Testversion läuft die Abrechnung bei Google über dein eigenes API-Projekt." else "")
     if (s.personalApi) Info("DEIN API-PROJEKT", "Welche Datenbedingungen gelten, hängt von deinem Google-Projekt und der Region ab. Prüfe diese vor dem Senden persönlicher Briefe; teste zunächst mit geschwärzten oder erfundenen Daten.")
     Info("IST NICHT", "Rechtsberatung. Die KI kann sich irren. Fristen und Entwürfe prüfst du selbst.")
     ActionButton("Verstanden, ${if (s.input.hasContent) "Brief prüfen" else "zustimmen"}", model::consent)
@@ -136,7 +140,9 @@ private fun Settings(s: UiState, model: BriefampelViewModel) {
     Text(when { s.personalApi -> "Dein Gemini-Schlüssel ist hinterlegt. Die Verbindung wird bei deiner nächsten Prüfung getestet."; s.configured -> "Firebase ist eingerichtet. Die Verbindung wird bei deiner nächsten Prüfung verwendet."; s.personalApiSupported -> "Hinterlege deinen eigenen Gemini-API-Schlüssel, um auf diesem Handy ohne Firebase zu testen."; else -> "Die Vorschau funktioniert. Eigene Briefe können erst nach Einrichtung von Firebase analysiert werden." }, style = Schrift.Text, color = c.tinte)
     if (s.personalApiSupported) PersonalApiSettings(s, model)
     else if (!s.configured) Text("Einrichtung für den Entwickler: README.md im Projekt.", style = Schrift.TextKlein, color = c.tinteLeise)
-    Info("VERFÜGBAR", "${s.remaining} von 3 Prüfungen heute · Tageswechsel nach Europe/Berlin")
+    Info("GUTHABEN", "${de.briefampel.app.domain.Guthaben.analysenText(s.guthaben)} · 1 Analyse = ein Brief geprüft + bis zu 3 Antworten · verfällt nicht")
+    ActionButton("Pakete und Preise", { model.sheet(Sheet.PAKETE) }, primary = false)
+    if (BuildConfig.DEBUG) TextButton(onClick = model::testGuthaben) { Text("Testversion: +10 Analysen", color = c.tinteLeise) }
     Info("ZUSTIMMUNG", if (s.consent) "Erteilt. Gilt für Analysen und Antwortentwürfe." else "Noch nicht erteilt. Vor einer KI-Anfrage fragen wir nach.")
     if (s.consent) ActionButton("Zustimmung widerrufen", model::revokeConsent, primary = false)
     else if (s.configured) ActionButton("Verarbeitung ansehen", { model.sheet(Sheet.CONSENT) }, primary = false)
@@ -239,4 +245,37 @@ private fun Info(label: String, text: String) {
         Eyebrow(label)
         Text(text, style = Schrift.TextKlein, color = LocalFarben.current.tinte)
     }
+}
+
+/** Pakete statt Abo: Man zahlt nur, wenn Post kommt. Kaufen wird mit dem Store-Start freigeschaltet. */
+@Composable
+private fun Pakete(s: UiState, model: BriefampelViewModel) {
+    val c = LocalFarben.current
+    var gewaehlt by remember { mutableStateOf("analysen_30") }
+    Eyebrow("DEIN GUTHABEN · ${de.briefampel.app.domain.Guthaben.analysenText(s.guthaben).uppercase()}")
+    Text(if (s.guthaben == 0) "Mehr Briefe,\nweniger Sorgen." else "Mehr Briefe\nprüfen.", style = Schrift.Anzeige, color = c.tinte)
+    Text("Kein Abo. Du zahlst nur, wenn Post kommt – und das Guthaben verfällt nicht.", style = Schrift.Text, color = c.tinteLeise)
+    de.briefampel.app.domain.Guthaben.pakete.forEach { p ->
+        val an = p.id == gewaehlt
+        Surface(
+            onClick = { gewaehlt = p.id }, shape = RoundedCornerShape(22.dp),
+            color = if (an) c.knopf else c.flaeche, contentColor = if (an) c.aufKnopf else c.tinte,
+            border = if (an) null else BorderStroke(1.dp, c.linie), modifier = Modifier.fillMaxWidth(),
+        ) {
+            Row(Modifier.padding(18.dp), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    p.marke?.let { Text(it, style = Schrift.Marke, color = if (an) c.aufKnopf.copy(alpha = 0.7f) else c.gelbText) }
+                    Text("${p.analysen} Analysen", style = Schrift.Titel.copy(fontSize = 22.sp))
+                    Text(p.jeAnalyse, style = Schrift.TextKlein, color = if (an) c.aufKnopf.copy(alpha = 0.75f) else c.tinteLeise)
+                }
+                Text(p.preis, style = Schrift.ZahlGross.copy(fontSize = 20.sp))
+            }
+        }
+    }
+    Info("EINE ANALYSE", "Ein Brief geprüft – Ampel, Zusammenfassung, Frist – plus bis zu 3 Antwortentwürfe dazu.")
+    Info("GRATIS", "Jede neue Installation startet mit 3 Analysen zum Ausprobieren.")
+    ActionButton("Kaufen kommt mit dem Store-Start", {}, enabled = false)
+    Text("In dieser Testversion ist noch kein Kauf möglich. Bezahlt wird später sicher über Google Play.", style = Schrift.TextKlein, color = c.tinteLeise)
+    if (BuildConfig.DEBUG) ActionButton("Testversion: +10 Analysen", model::testGuthaben, primary = false)
+    ActionButton("Schließen", { model.sheet(null) }, primary = false)
 }

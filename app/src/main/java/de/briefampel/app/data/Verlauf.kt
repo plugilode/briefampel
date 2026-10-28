@@ -21,6 +21,8 @@ data class VerlaufEintrag(
     val analyse: LetterAnalysis,
     val seiten: Int,
     val antworten: List<GespeicherteAntwort> = emptyList(),
+    /** Wie viele Analysen für diesen Brief schon bezahlt sind; jede deckt bis zu 3 Antworten. */
+    val bezahlteAnalysen: Int = 1,
 )
 
 data class GespeicherteAntwort(val text: String, val ton: String, val am: Long)
@@ -35,7 +37,7 @@ internal object VerlaufJson {
     fun encode(eintraege: List<VerlaufEintrag>): String = JSONArray().apply {
         eintraege.forEach { e ->
             put(JSONObject()
-                .put("id", e.id).put("am", e.geprueftAm).put("seiten", e.seiten)
+                .put("id", e.id).put("am", e.geprueftAm).put("seiten", e.seiten).put("bezahlt", e.bezahlteAnalysen)
                 .put("analyse", JSONObject(AnalysisJson.encode(e.analyse)))
                 .put("antworten", JSONArray().apply { e.antworten.forEach { a -> put(JSONObject().put("text", a.text).put("ton", a.ton).put("am", a.am)) } }))
         }
@@ -52,6 +54,7 @@ internal object VerlaufJson {
                     geprueftAm = o.getLong("am"),
                     analyse = AnalysisJson.parse(o.getJSONObject("analyse").toString()),
                     seiten = o.optInt("seiten", 1),
+                    bezahlteAnalysen = o.optInt("bezahlt", 1),
                     antworten = (0 until antworten.length()).mapNotNull { j ->
                         antworten.optJSONObject(j)?.let { GespeicherteAntwort(it.optString("text"), it.optString("ton"), it.optLong("am")) }
                     },

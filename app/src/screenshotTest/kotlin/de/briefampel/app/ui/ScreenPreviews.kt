@@ -209,3 +209,9 @@ private fun verlaufBeispiel(): List<de.briefampel.app.data.VerlaufEintrag> {
         }
     }
 }
+
+@PreviewTest @Preview(name = "31_Pakete", widthDp = 412, heightDp = 915, locale = "de", showSystemUi = true)
+@Composable fun PaketeScreenshot() = Capture(base().copy(sheet = Sheet.PAKETE, guthaben = 1))
+
+@PreviewTest @Preview(name = "32_Start_Guthaben_leer", widthDp = 412, heightDp = 915, locale = "de", showSystemUi = true)
+@Composable fun StartOhneGuthabenScreenshot() = Capture(base().copy(guthaben = 0))
