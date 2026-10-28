@@ -33,6 +33,8 @@ object AnalysisJson {
         put("datum", a.datum?.let(Fristen::format)); put("aktenzeichen", a.aktenzeichen)
         put("kurz", a.kurz); put("verlangt", a.verlangt); put("risiko", a.risiko)
         put("empfehlung", a.empfehlung); put("sprache", a.sprache)
+        put("ton", a.ton); put("tonnotiz", a.tonnotiz); put("antwort_noetig", a.antwortNoetig)
+        put("stichwort_vorschlaege", org.json.JSONArray(a.stichwortVorschlaege))
         put("frist", a.frist?.let { JSONObject().put("datum", it.datum?.let(Fristen::format)).put("hinweis", it.hinweis) })
     }.toString()
 }

@@ -61,6 +61,12 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.biometric.BiometricManager
+import androidx.biometric.BiometricPrompt
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import androidx.core.content.ContextCompat
+import androidx.fragment.app.FragmentActivity
 import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions
 import com.google.mlkit.vision.documentscanner.GmsDocumentScanning
 import com.google.mlkit.vision.documentscanner.GmsDocumentScanningResult
@@ -102,16 +108,32 @@ fun BriefampelApp(model: BriefampelViewModel) {
             val ampel = state.result?.analyse?.ampel
             if (state.screen == Screen.RESULT && ampel != null && !wenig) vibriere(context.getSystemService(Vibrator::class.java), ampel)
         }
+        val biometrieMoeglich = remember(context) {
+            BiometricManager.from(context).canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_WEAK) == BiometricManager.BIOMETRIC_SUCCESS
+        }
+        val biometrie: (() -> Unit)? = if (!biometrieMoeglich || context !is FragmentActivity) null else ({
+            BiometricPrompt(context, ContextCompat.getMainExecutor(context), object : BiometricPrompt.AuthenticationCallback() {
+                override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) = model.entsperrt()
+            }).authenticate(
+                BiometricPrompt.PromptInfo.Builder()
+                    .setTitle("Briefampel entsperren")
+                    .setSubtitle("Mit Fingerabdruck oder Gesicht")
+                    .setNegativeButtonText("PIN eingeben")
+                    .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_WEAK)
+                    .build(),
+            )
+        })
         BriefampelLayout(
             state, model, snackbar, scan,
             file = { files.launch(arrayOf("application/pdf", "image/png", "image/jpeg", "image/webp")) },
-            copy = {
-                context.getSystemService(ClipboardManager::class.java).setPrimaryClip(ClipData.newPlainText("Antwortbrief", state.reply))
+            copy = { text ->
+                context.getSystemService(ClipboardManager::class.java).setPrimaryClip(ClipData.newPlainText("Antwortbrief", text))
                 scope.launch { snackbar.showSnackbar("Antwort kopiert") }
             },
-            share = {
-                context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, state.reply) }, "Antwort teilen"))
+            share = { text ->
+                context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, text) }, "Antwort teilen"))
             },
+            biometrie = biometrie,
         )
     }
 }
@@ -135,10 +157,11 @@ internal fun BriefampelLayout(
     snackbar: SnackbarHostState = remember { SnackbarHostState() },
     scan: () -> Unit = {},
     file: () -> Unit = {},
-    copy: () -> Unit = {},
-    share: () -> Unit = {},
+    copy: (String) -> Unit = {},
+    share: (String) -> Unit = {},
     initialScroll: Int = 0,
     initialSheetScroll: Int = 0,
+    biometrie: (() -> Unit)? = null,
 ) {
     val c = LocalFarben.current
     val lampen = remember { mutableStateMapOf<Ampel, Offset>() }
@@ -168,8 +191,9 @@ internal fun BriefampelLayout(
                 Box(Modifier.widthIn(max = 600.dp).fillMaxSize()) {
                     when (screen) {
                         Screen.INPUT -> Eingang(state, model, scan, file)
-                        Screen.RESULT -> Ergebnis(state, model, initialScroll) { a, o -> lampen[a] = o }
-                        Screen.REPLY -> Antwort(state, model, copy, share, initialScroll)
+                        Screen.RESULT -> Ergebnis(state, model, initialScroll, copy, share) { a, o -> lampen[a] = o }
+                        Screen.REPLY -> Antwort(state, model, { copy(state.reply) }, { share(state.reply) }, initialScroll)
+                        Screen.VERLAUF -> VerlaufAnsicht(state, model)
                     }
                 }
             }
@@ -182,7 +206,10 @@ internal fun BriefampelLayout(
         SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 56.dp))
     }
     AppSheets(state, model, initialSheetScroll)
-    if (state.showIntro) Intro(model::finishIntro)
+    when {
+        state.showIntro -> Intro(model::finishIntro)
+        state.sperre != Sperre.OFFEN -> SperrBildschirm(state, model, biometrie)
+    }
 }
 
 @Composable
@@ -200,6 +227,10 @@ private fun Kopfzeile(s: UiState, model: BriefampelViewModel) {
             RundKnopf(Symbole.Zurueck, "Zurück", model::back, enabled = !s.importing)
         }
         Spacer(Modifier.weight(1f))
+        if (s.screen == Screen.INPUT) {
+            RundKnopf(Symbole.Verlauf, "Verlauf", model::verlaufOeffnen, enabled = !s.loading && !s.importing)
+            Spacer(Modifier.width(10.dp))
+        }
         RundKnopf(Symbole.Person, "Einstellungen", { model.sheet(Sheet.SETTINGS) }, enabled = !s.loading && !s.writing && !s.importing)
     }
 }
@@ -373,16 +404,25 @@ private fun Papierstapel(anzahl: Int) {
 private val wochentag = DateTimeFormatter.ofPattern("EE", Locale.GERMAN)
 
 @Composable
-private fun Ergebnis(s: UiState, model: BriefampelViewModel, initialScroll: Int, lampenMitte: (Ampel, Offset) -> Unit) {
+private fun Ergebnis(
+    s: UiState, model: BriefampelViewModel, initialScroll: Int,
+    copy: (String) -> Unit, share: (String) -> Unit, lampenMitte: (Ampel, Offset) -> Unit,
+) {
     val r = s.result ?: return
     val a = r.analyse
     val c = LocalFarben.current
     val farbe = c.textFarbe(a.ampel)
     val heute = LocalDate.now(ZoneId.of("Europe/Berlin"))
+    val eintrag = s.verlauf.firstOrNull { it.id == s.eintragId }
+    var loeschen by remember { mutableStateOf(false) }
     Box(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState(initialScroll)).padding(horizontal = 20.dp).padding(bottom = 140.dp)) {
             Eyebrow(
-                if (s.example) "BEISPIEL · KEIN EIGENER BRIEF" else "GEPRÜFT ${heute.format(DateTimeFormatter.ofPattern("dd.MM."))}",
+                when {
+                    s.example -> "BEISPIEL · KEIN EIGENER BRIEF"
+                    s.ausVerlauf && eintrag != null -> "AUS DEINEM VERLAUF · GEPRÜFT ${Fristen.format(tagDes(eintrag.geprueftAm))}"
+                    else -> "GEPRÜFT ${heute.format(DateTimeFormatter.ofPattern("dd.MM."))}"
+                },
                 if (s.example) c.gelbText else c.tinteHinweis,
                 Modifier.padding(top = 4.dp),
             )
@@ -424,7 +464,19 @@ private fun Ergebnis(s: UiState, model: BriefampelViewModel, initialScroll: Int,
             FaktZeile("WENN NICHTS", a.risiko)
             FaktZeile("MEIN RAT", a.empfehlung, betont = true, letzte = true)
             Spacer(Modifier.height(20.dp))
-            VersiegelterBrief(r.seiten) { model.sheet(Sheet.ORIGINAL) }
+            if (s.ausVerlauf) Text(
+                "Das Original bewahre ich nicht auf – im Verlauf liegen nur Ergebnis und Antworten.",
+                style = Schrift.TextKlein, color = c.tinteHinweis,
+            ) else VersiegelterBrief(r.seiten) { model.sheet(Sheet.ORIGINAL) }
+            eintrag?.antworten?.takeIf { it.isNotEmpty() }?.let {
+                Spacer(Modifier.height(24.dp))
+                GespeicherteAntworten(it, copy, share)
+            }
+            if (s.ausVerlauf && eintrag != null) Text(
+                "Aus dem Verlauf löschen", style = Schrift.KnopfKlein, color = c.rotText, textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth().padding(top = 12.dp).clip(CircleShape)
+                    .selectable(false, role = Role.Button) { loeschen = true }.padding(vertical = 14.dp),
+            )
             Text(
                 "${if (s.example) "Eigenen" else "Neuen"} Brief prüfen", style = Schrift.KnopfKlein, color = c.tinteLeise, textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth().padding(top = 12.dp).clip(CircleShape)
@@ -450,6 +502,14 @@ private fun Ergebnis(s: UiState, model: BriefampelViewModel, initialScroll: Int,
             if (s.example) Text("Lade zuerst deinen eigenen Brief hoch, um eine Antwort zu schreiben.", style = Schrift.Fuss, color = c.tinteLeise, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
         }
     }
+    if (loeschen && eintrag != null) AlertDialog(
+        onDismissRequest = { loeschen = false },
+        title = { Text("Diesen Brief löschen?") },
+        text = { Text("„${a.titel}“ und ${if (eintrag.antworten.isEmpty()) "das Ergebnis" else "deine Antworten dazu"} verschwinden von diesem Handy.") },
+        confirmButton = { TextButton(onClick = { loeschen = false; model.eintragLoeschen(eintrag.id) }) { Text("Löschen", color = c.rotText) } },
+        dismissButton = { TextButton(onClick = { loeschen = false }) { Text("Behalten", color = c.tinte) } },
+        containerColor = c.flaeche, titleContentColor = c.tinte, textContentColor = c.tinteLeise,
+    )
 }
 
 @Composable

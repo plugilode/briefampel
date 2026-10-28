@@ -1,5 +1,7 @@
 package de.briefampel.app.ui
 
+import de.briefampel.app.data.OffenerZugang
+import de.briefampel.app.data.FluechtigerVerlauf
 import android.content.Context
 import androidx.compose.ui.test.*
 import androidx.compose.ui.semantics.SemanticsActions
@@ -30,7 +32,7 @@ class BriefampelUiTest {
     }
 
     @Test fun `own text import stays local and configuration is clearly disclosed`() {
-        val model = BriefampelViewModel(RuntimeEnvironment.getApplication(), FakeProvider(), false)
+        val model = BriefampelViewModel(RuntimeEnvironment.getApplication(), FakeProvider(), false, zugang = OffenerZugang, verlauf = FluechtigerVerlauf())
         model.finishIntro()
         compose.setContent { BriefampelApp(model) }
         compose.onNodeWithText("Text einfügen").performClick()
@@ -42,7 +44,7 @@ class BriefampelUiTest {
     }
 
     @Test fun `example keeps original hidden until user opens it and disables replies`() {
-        val model = BriefampelViewModel(RuntimeEnvironment.getApplication(), FakeProvider(), false)
+        val model = BriefampelViewModel(RuntimeEnvironment.getApplication(), FakeProvider(), false, zugang = OffenerZugang, verlauf = FluechtigerVerlauf())
         model.finishIntro()
         compose.setContent { BriefampelApp(model) }
         compose.onNodeWithText("Mahnung").performScrollTo().performClick()
@@ -54,11 +56,11 @@ class BriefampelUiTest {
     }
 
     @Test fun `light theme and sender settings are accessible`() {
-        val model = BriefampelViewModel(RuntimeEnvironment.getApplication(), FakeProvider(), false)
+        val model = BriefampelViewModel(RuntimeEnvironment.getApplication(), FakeProvider(), false, zugang = OffenerZugang, verlauf = FluechtigerVerlauf())
         model.finishIntro()
         compose.setContent { BriefampelApp(model) }
         compose.onNodeWithContentDescription("Einstellungen").performClick()
-        compose.onNode(isToggleable()).performClick()
+        compose.onAllNodes(isToggleable())[0].performClick()
         compose.onNodeWithText("Name").performScrollTo().performTextInput("Testname")
         compose.onNodeWithText("Absenderdaten löschen").performScrollTo().performClick()
         compose.onNodeWithText("Fertig").performScrollTo().performClick()
@@ -66,7 +68,7 @@ class BriefampelUiTest {
     }
 
     @Test fun `large font input remains scrollable at 360dp`() {
-        val model = BriefampelViewModel(RuntimeEnvironment.getApplication(), FakeProvider(), false)
+        val model = BriefampelViewModel(RuntimeEnvironment.getApplication(), FakeProvider(), false, zugang = OffenerZugang, verlauf = FluechtigerVerlauf())
         model.finishIntro()
         compose.setContent {
             CompositionLocalProvider(LocalDensity provides Density(1f, 2f)) { BriefampelApp(model) }
@@ -76,7 +78,7 @@ class BriefampelUiTest {
     }
 
     @Test fun `consent result and reply stop flow is connected with a test provider`() {
-        val model = BriefampelViewModel(RuntimeEnvironment.getApplication(), FakeProvider(streamDelay = 60_000), true)
+        val model = BriefampelViewModel(RuntimeEnvironment.getApplication(), FakeProvider(streamDelay = 60_000), true, zugang = OffenerZugang, verlauf = FluechtigerVerlauf())
         model.finishIntro()
         model.setText("Dies ist mein eigener Brief.")
         compose.setContent { BriefampelApp(model) }
@@ -93,7 +95,7 @@ class BriefampelUiTest {
 
     @Test fun `personal Gemini setup is visible and deleting a key resets consent`() {
         val keys = FakePersonalApi()
-        val model = BriefampelViewModel(RuntimeEnvironment.getApplication(), FakeProvider(), null, keys, Dispatchers.Main.immediate)
+        val model = BriefampelViewModel(RuntimeEnvironment.getApplication(), FakeProvider(), null, keys, Dispatchers.Main.immediate, zugang = OffenerZugang, verlauf = FluechtigerVerlauf())
         model.finishIntro()
         compose.setContent { BriefampelApp(model) }
         compose.onNodeWithContentDescription("Einstellungen").performClick()

@@ -3,7 +3,8 @@ package de.briefampel.app
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import androidx.activity.ComponentActivity
+import android.os.SystemClock
+import androidx.fragment.app.FragmentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
@@ -11,8 +12,22 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import de.briefampel.app.ui.BriefampelApp
 import de.briefampel.app.ui.BriefampelViewModel
 
-class MainActivity : ComponentActivity() {
+/** FragmentActivity, weil die Biometrie-Abfrage ein Fragment braucht. */
+class MainActivity : FragmentActivity() {
     private val model: BriefampelViewModel by viewModels()
+    private var imHintergrundSeit = 0L
+
+    override fun onStop() {
+        super.onStop()
+        imHintergrundSeit = SystemClock.elapsedRealtime()
+    }
+
+    override fun onStart() {
+        super.onStart()
+        // Nach einer Minute im Hintergrund wird wieder gesperrt.
+        if (imHintergrundSeit > 0 && SystemClock.elapsedRealtime() - imHintergrundSeit > 60_000) model.sperren()
+        imHintergrundSeit = 0
+    }
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)

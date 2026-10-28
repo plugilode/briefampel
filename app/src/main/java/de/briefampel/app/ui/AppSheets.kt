@@ -91,7 +91,8 @@ private fun Privacy(s: UiState, model: BriefampelViewModel) {
     Text("Was mit deinem\nBrief passiert.", style = Schrift.Titel, color = c.tinte)
     Text("Vor der Zustimmung wird kein Brief an die KI gesendet. Nach deiner Zustimmung werden nur die zur Prüfung ausgewählten Inhalte übertragen; beim Antworten zusätzlich deine Stichworte, der gewählte Ton und die eingetragenen Absenderdaten.", style = Schrift.Text, color = c.tinte)
     Info("VERARBEITUNG", if (s.personalApi) "Direkt über die Google Gemini Developer API mit deinem eigenen API-Projekt. Die App legt dabei keine EU-Verarbeitungsregion fest. Es gelten die Daten- und Abrechnungsbedingungen deines API-Projekts." else "Google Gemini über Firebase AI Logic, Region ${BuildConfig.AI_REGION}. Die Region und das Modell müssen vom Betreiber passend eingerichtet sein.")
-    Info("LOKAL", "Die App speichert keinen Briefverlauf. Importierte Briefe und Entwürfe bleiben im Arbeitsspeicher. PDFs werden zur Seitenprüfung kurz im privaten Cache geöffnet und danach gelöscht. Android, der Dateianbieter und der Dokument-Scanner können eigene temporäre Kopien verwalten.")
+    Info("VERLAUF", "Ergebnisse geprüfter Briefe und deine Antworten werden im Verlauf gespeichert: nur auf diesem Handy, AES-256-verschlüsselt mit einem Schlüssel aus dem Android Keystore, geschützt durch deine PIN. Originalseiten werden nicht gespeichert. Einträge bleiben, bis du sie löschst. „PIN vergessen“ löscht den ganzen Verlauf.")
+    Info("LOKAL", "Importierte Originale bleiben nur im Arbeitsspeicher. PDFs werden zur Seitenprüfung kurz im privaten Cache geöffnet und danach gelöscht. Android, der Dateianbieter und der Dokument-Scanner können eigene temporäre Kopien verwalten.")
     Info("EINSTELLUNGEN", "Absender, Darstellungsmodus, Tageszähler und Zustimmung bleiben lokal auf diesem Gerät. App-Backups sind deaktiviert. Du kannst Absenderdaten löschen und die Zustimmung für künftige Anfragen widerrufen.")
     if (s.personalApiSupported) Info("PERSÖNLICHER API-SCHLÜSSEL", "Nur die Testversion unterstützt einen eigenen Schlüssel. Er wird mit einem Schlüssel aus Android Keystore verschlüsselt auf diesem Gerät gespeichert und nur zur Anmeldung bei der Gemini API übertragen. Du kannst ihn in den Einstellungen löschen.")
     Info("KI & GRENZEN", "KI-Antworten können Fehler enthalten. Fristen im Original und fertige Entwürfe immer prüfen. Das lokale Tageslimit ist kein serverseitiger Kostenschutz.")
@@ -110,6 +111,21 @@ private fun Settings(s: UiState, model: BriefampelViewModel) {
         Text("Dunkle Darstellung", style = Schrift.Text, color = c.tinte, modifier = Modifier.weight(1f))
         Switch(checked = s.dark, onCheckedChange = { model.dark() })
     }
+    HorizontalDivider(color = c.linie)
+    Eyebrow("SPERRE & VERLAUF")
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val vorschau = LocalInspectionMode.current
+    val biometrieMoeglich = remember(context) {
+        !vorschau && androidx.biometric.BiometricManager.from(context).canAuthenticate(androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_WEAK) ==
+            androidx.biometric.BiometricManager.BIOMETRIC_SUCCESS
+    }
+    if (biometrieMoeglich) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Text("Mit Fingerabdruck oder Gesicht entsperren", style = Schrift.Text, color = c.tinte, modifier = Modifier.weight(1f))
+        Switch(checked = s.biometrie, onCheckedChange = model::biometrie)
+    }
+    Text("${s.verlauf.size} ${if (s.verlauf.size == 1) "Brief" else "Briefe"} im Verlauf · verschlüsselt auf diesem Handy · bleiben, bis du sie löschst.", style = Schrift.TextKlein, color = c.tinteLeise)
+    ActionButton("Verlauf ansehen", model::verlaufOeffnen, primary = false)
+    ActionButton("Jetzt sperren", model::sperren, primary = false)
     HorizontalDivider(color = c.linie)
     Eyebrow("KI-VERBINDUNG")
     Text(when { s.personalApi -> "Dein Gemini-Schlüssel ist hinterlegt. Die Verbindung wird bei deiner nächsten Prüfung getestet."; s.configured -> "Firebase ist eingerichtet. Die Verbindung wird bei deiner nächsten Prüfung verwendet."; s.personalApiSupported -> "Hinterlege deinen eigenen Gemini-API-Schlüssel, um auf diesem Handy ohne Firebase zu testen."; else -> "Die Vorschau funktioniert. Eigene Briefe können erst nach Einrichtung von Firebase analysiert werden." }, style = Schrift.Text, color = c.tinte)
