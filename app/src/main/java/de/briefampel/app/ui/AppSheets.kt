@@ -125,7 +125,7 @@ private fun Settings(s: UiState, model: BriefampelViewModel) {
     SenderFields(s.sender, model::sender)
     TextButton(onClick = model::forgetSender) { Text("Absenderdaten löschen", color = c.tinteLeise) }
     Text("Briefampel ${BuildConfig.VERSION_NAME} · Vorschau", style = Schrift.Fuss, color = c.tinteLeise)
-    Eyebrow("BEISPIELE AUS DEM CLAUDE-ORIGINAL")
+    Eyebrow("BEISPIELE")
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         de.briefampel.app.domain.Ampel.entries.forEach { signal ->
             OutlinedButton(onClick = { model.example(signal) }) { Text(when (signal) { de.briefampel.app.domain.Ampel.ROT -> "Mahnung"; de.briefampel.app.domain.Ampel.GELB -> "Rückfrage"; else -> "Termin" }) }

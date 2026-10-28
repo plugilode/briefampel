@@ -49,7 +49,7 @@ Ohne echten Schlüssel wurden nur lokale HTTP-Tests durchgeführt. Diese bestät
 1. Ein eigenes Firebase-Projekt anlegen und die Android-App `de.briefampel.app` registrieren. Die Paket-ID vor einer Veröffentlichung festlegen.
 2. Die heruntergeladene **google-services.json** nach `app/google-services.json` kopieren. Die Datei ist von Git ausgeschlossen. Der Google-Services-Gradle-Plugin wird nur bei vorhandener Datei angewendet.
 3. Firebase AI Logic für den **Vertex-AI-Backenddienst** aktivieren und die benötigte Abrechnung/API-Konfiguration im eigenen Google-Projekt vornehmen. Keinen Gemini-API-Schlüssel in die App schreiben.
-4. Ein im eigenen Projekt verfügbares Modell mit passender EU-Region auswählen. Standard dieser Version: `gemini-3.8-flash`, Region `eu`. Beide sind Build-Einstellungen, keine Garantie für Zugriff oder Verfügbarkeit. Überschreiben zum Beispiel mit `-Pbriefampel.model=MODELL -Pbriefampel.region=REGION`. Das SDK ist bewusst auf Firebase BoM 34.6.0 fixiert und nutzt die dazugehörige `vertexAI`-Initialisierung.
+4. Ein im eigenen Projekt verfügbares Modell mit passender EU-Region auswählen. Standard dieser Version: `gemini-3.5-flash`, Region `eu`. Beide sind Build-Einstellungen, keine Garantie für Zugriff oder Verfügbarkeit. Überschreiben zum Beispiel mit `-Pbriefampel.model=MODELL -Pbriefampel.region=REGION`. Das SDK ist bewusst auf Firebase BoM 34.6.0 fixiert und nutzt die dazugehörige `vertexAI`-Initialisierung.
 5. Firebase App Check konfigurieren. Debug-Builds verwenden den Debug-Provider: den lokalen Debug-Token aus Logcat im Firebase-Projekt registrieren. **Release** verwendet Play Integrity: App samt SHA-256 registrieren und Integrität/Signatur korrekt einrichten. Die App selbst setzt keine serverseitige App-Check-Erzwingung; diese in Firebase aktivieren.
 6. Neu bauen und einen eigenen Testbrief prüfen. Der erste Upload erfordert Zustimmung. Erst ein erfolgreicher Live-Test bestätigt Projekt, Berechtigungen, Region und Modell.
 
@@ -73,6 +73,6 @@ Referenzen: [Firebase einrichten](https://firebase.google.com/docs/ai-logic/get-
 - Betreiberangaben und eine veröffentlichte, zu den tatsächlich eingesetzten Google-Diensten passende Datenschutzerklärung. Die App enthält vorerst nur eine technische Datenschutzübersicht ohne Lösch-/Aufbewahrungsversprechen für Google.
 - Release-Signatur, Prüfung des minimierten Release auf einem echten Gerät und Play-Console-/Test-/Store-Eintrag. Release-Ausgaben aus diesem Projekt sind ohne eigenen Signaturschlüssel nicht veröffentlichungsfertig.
 - Fachliche Prüfung der Zusammenfassungen, Fristen und Antwortentwürfe. Die App berechnet keine gesetzlichen Rechtsbehelfsfristen aus vermuteten Zustelldaten.
-- Optionaler 14-Sekunden-Introfilm und Store-Marketingmaterial sind nicht implementiert. Das Hauptprogramm hat eine lokal gezeichnete animierte Ampel mit Hut.
+- Die Oberfläche ist nativ in Compose gebaut: animierte Ampel-Figur mit Gesicht und Hut (`ui/figur/AmpelFreundin.kt`) und ein kurzes Intro mit Regenschirm beim ersten Start. Store-Video und Marketingmaterial fehlen noch.
 
 Bestehende Konzeptunterlagen: `PLAN.md`, `docs/briefampel-spec.md` und `docs/briefampel.html`. Sie beschreiben auch frühere Entscheidungen und sind kein Nachweis aktueller Anbieterbedingungen, Preise oder Store-Regeln.
