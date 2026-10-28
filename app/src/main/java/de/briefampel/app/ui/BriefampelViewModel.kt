@@ -122,8 +122,8 @@ class BriefampelViewModel @JvmOverloads constructor(
     }
 
     fun example(ampel: Ampel) {
-        // These are the dates in the user's binding Claude screenshots, never today's dates.
-        mutable.update { it.copy(screen = Screen.RESULT, result = Beispiele.fuer(ampel, LocalDate.of(2026, 10, 25)), example = true, error = null, sheet = null, showIntro = false) }
+        // Relativ zu heute, damit die Beispielfrist nie in der Vergangenheit liegt.
+        mutable.update { it.copy(screen = Screen.RESULT, result = Beispiele.fuer(ampel, today()), example = true, error = null, sheet = null, showIntro = false) }
     }
 
     fun analyze() {

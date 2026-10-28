@@ -73,6 +73,6 @@ Referenzen: [Firebase einrichten](https://firebase.google.com/docs/ai-logic/get-
 - Betreiberangaben und eine veröffentlichte, zu den tatsächlich eingesetzten Google-Diensten passende Datenschutzerklärung. Die App enthält vorerst nur eine technische Datenschutzübersicht ohne Lösch-/Aufbewahrungsversprechen für Google.
 - Release-Signatur, Prüfung des minimierten Release auf einem echten Gerät und Play-Console-/Test-/Store-Eintrag. Release-Ausgaben aus diesem Projekt sind ohne eigenen Signaturschlüssel nicht veröffentlichungsfertig.
 - Fachliche Prüfung der Zusammenfassungen, Fristen und Antwortentwürfe. Die App berechnet keine gesetzlichen Rechtsbehelfsfristen aus vermuteten Zustelldaten.
-- Optionaler 14-Sekunden-Introfilm und Store-Marketingmaterial sind nicht implementiert. Das Hauptprogramm hat eine lokal gezeichnete animierte Ampel mit Hut.
+- Die Oberfläche ist nativ in Compose gebaut: animierte Ampel-Figur mit Gesicht und Hut (`ui/figur/AmpelFreundin.kt`) und ein kurzes Intro mit Regenschirm beim ersten Start. Store-Video und Marketingmaterial fehlen noch.
 
 Bestehende Konzeptunterlagen: `PLAN.md`, `docs/briefampel-spec.md` und `docs/briefampel.html`. Sie beschreiben auch frühere Entscheidungen und sind kein Nachweis aktueller Anbieterbedingungen, Preise oder Store-Regeln.

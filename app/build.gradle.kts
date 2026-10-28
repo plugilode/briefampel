@@ -42,7 +42,6 @@ dependencies {
     "screenshotTestImplementation"("com.android.tools.screenshot:screenshot-validation-api:0.0.1-alpha16")
     "screenshotTestImplementation"(libs.androidx.compose.ui.tooling)
     implementation(libs.androidx.core.ktx)
-    implementation("androidx.webkit:webkit:1.14.0")
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
