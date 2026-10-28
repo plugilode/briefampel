@@ -1,0 +1,123 @@
+{
+  "date": "2026-10-27",
+  "renderer": "Android Layoutlib / Compose Preview Screenshot Testing",
+  "width": 1082,
+  "height": 2402,
+  "screenshots": [
+    {
+      "Number": "01",
+      "Title": "Start",
+      "File": "01_Start.png"
+    },
+    {
+      "Number": "02",
+      "Title": "Brief vorbereitet",
+      "File": "02_Brief_bereit.png"
+    },
+    {
+      "Number": "03",
+      "Title": "Brief wird geprüft",
+      "File": "03_Pruefung.png"
+    },
+    {
+      "Number": "04",
+      "Title": "Ergebnis Rot",
+      "File": "04_Ergebnis_Rot.png"
+    },
+    {
+      "Number": "05",
+      "Title": "Ergebnis Gelb",
+      "File": "05_Ergebnis_Gelb.png"
+    },
+    {
+      "Number": "06",
+      "Title": "Ergebnis Grün",
+      "File": "06_Ergebnis_Gruen.png"
+    },
+    {
+      "Number": "07",
+      "Title": "Antwort: Stichworte",
+      "File": "07_Antwort_Stichworte.png"
+    },
+    {
+      "Number": "08",
+      "Title": "Antwort wird geschrieben",
+      "File": "08_Antwort_schreibt.png"
+    },
+    {
+      "Number": "09",
+      "Title": "Antwortentwurf",
+      "File": "09_Antwort_fertig.png"
+    },
+    {
+      "Number": "10",
+      "Title": "Text einfügen",
+      "File": "10_Text_einfuegen.png"
+    },
+    {
+      "Number": "11",
+      "Title": "Einwilligung",
+      "File": "11_Einwilligung.png"
+    },
+    {
+      "Number": "12",
+      "Title": "Einstellungen: Gemini",
+      "File": "12_Einstellungen_Gemini.png"
+    },
+    {
+      "Number": "13",
+      "Title": "Datenschutz",
+      "File": "13_Datenschutz.png"
+    },
+    {
+      "Number": "14",
+      "Title": "Originalbrief",
+      "File": "14_Originalbrief.png"
+    },
+    {
+      "Number": "15",
+      "Title": "Verbindungsfehler",
+      "File": "15_Fehler.png"
+    },
+    {
+      "Number": "16",
+      "Title": "Heller Modus",
+      "File": "16_Heller_Modus.png"
+    },
+    {
+      "Number": "17",
+      "Title": "Rot: Details und Aktionen",
+      "File": "17_Ergebnis_Rot_Details.png"
+    },
+    {
+      "Number": "18",
+      "Title": "Gelb: Details und Aktionen",
+      "File": "18_Ergebnis_Gelb_Details.png"
+    },
+    {
+      "Number": "19",
+      "Title": "Grün: Details und Aktionen",
+      "File": "19_Ergebnis_Gruen_Details.png"
+    },
+    {
+      "Number": "20",
+      "Title": "Einstellungen: Absender",
+      "File": "20_Einstellungen_Absender.png"
+    },
+    {
+      "Number": "21",
+      "Title": "Datenschutz: unterer Bereich",
+      "File": "21_Datenschutz_unten.png"
+    },
+    {
+      "Number": "22",
+      "Title": "Einwilligung: bestätigen",
+      "File": "22_Einwilligung_Bestaetigung.png"
+    },
+    {
+      "Number": "23",
+      "Title": "Originalbrief: unterer Bereich",
+      "File": "23_Originalbrief_unten.png"
+    }
+  ]
+}

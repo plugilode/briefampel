@@ -1,0 +1,16 @@
+@font-face{font-family:'Bricolage Grotesque';src:url('fonts/bricolage_grotesque.ttf') format('truetype');font-weight:100 900;font-display:block}
+@font-face{font-family:'Source Sans 3';src:url('fonts/source_sans_3.ttf') format('truetype');font-weight:200 900;font-display:block}
+@font-face{font-family:'IBM Plex Mono';src:url('fonts/ibm_plex_mono_regular.ttf') format('truetype');font-weight:400;font-display:block}
+@font-face{font-family:'IBM Plex Mono';src:url('fonts/ibm_plex_mono_medium.ttf') format('truetype');font-weight:500;font-display:block}
+@font-face{font-family:'IBM Plex Mono';src:url('fonts/ibm_plex_mono_semibold.ttf') format('truetype');font-weight:600;font-display:block}
+html,body{margin:0;padding:0;background:#121417;color:#F3F0E8;font-family:'Source Sans 3',sans-serif;-webkit-text-size-adjust:100%}
+#host{position:relative;overflow:hidden;margin:0 auto}
+#screen{transform-origin:top left}
+#notice{position:fixed;z-index:50;left:12px;right:12px;top:10px;padding:12px 16px;border-radius:16px;background:#1A1D21;border:1px solid #FF5A47;color:#F3F0E8;font-size:15px;box-shadow:0 8px 20px #0006}
+button:disabled{opacity:.45;cursor:default}
+button:focus-visible,a:focus-visible,textarea:focus-visible{outline:2px solid currentColor;outline-offset:3px}
+.file-controls{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.file-controls button{border:1px solid #2A2E34;border-radius:16px;padding:4px 8px;background:#1A1D21;color:#F3F0E8;font:12px 'Source Sans 3',sans-serif}
+.draft-actions{display:flex;gap:10px;margin-top:8px}
+.draft-actions button{flex:1;min-height:44px;border:1px solid #2A2E34;border-radius:22px;background:transparent;color:#F3F0E8;font:600 15px 'Source Sans 3',sans-serif}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:0s!important;animation-delay:0s!important;transition:none!important}}

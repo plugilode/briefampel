@@ -1,0 +1,186 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&amp;family=Source+Sans+3:wght@400;600;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+.f{animation-duration:14s;animation-iteration-count:infinite;animation-fill-mode:both}
+.env{animation-name:env;animation-timing-function:cubic-bezier(.3,.7,.3,1)}
+@keyframes env{
+0%{transform:translate(-50%,-600px) rotate(-16deg);opacity:1}
+7%{transform:translate(-50%,0) rotate(-5deg)}
+8.5%{transform:translate(-50%,-14px) rotate(-6deg)}
+10%{transform:translate(-50%,0) rotate(-5deg)}
+12%{transform:translate(calc(-50% - 4px),0) rotate(-7deg)}
+13.5%{transform:translate(calc(-50% + 4px),0) rotate(-3deg)}
+15%{transform:translate(calc(-50% - 3px),0) rotate(-6deg)}
+16.5%,36%{transform:translate(-50%,0) rotate(-5deg) scale(1);opacity:1}
+40%{transform:translate(-50%,-140px) rotate(0) scale(.2);opacity:1}
+41.5%,100%{transform:translate(-50%,-146px) rotate(0) scale(.12);opacity:0}}
+.e1{animation-name:e1;animation-timing-function:linear}
+@keyframes e1{0%{transform:translate(0,-160px) rotate(-20deg);opacity:1}26%{transform:translate(30px,250px) rotate(10deg);opacity:1}31%,100%{transform:translate(-170px,430px) rotate(-60deg);opacity:0}}
+.e2{animation-name:e2;animation-timing-function:linear}
+@keyframes e2{0%,3%{transform:translate(0,-180px) rotate(15deg);opacity:1}27%{transform:translate(-10px,240px) rotate(-8deg);opacity:1}32%,100%{transform:translate(190px,390px) rotate(50deg);opacity:0}}
+.e3{animation-name:e3;animation-timing-function:linear}
+@keyframes e3{0%,8%{transform:translate(0,-220px) rotate(4deg);opacity:1}27%{transform:translate(0,150px) rotate(6deg);opacity:1}29%{transform:translate(8px,128px) rotate(14deg)}35%,100%{transform:translate(170px,-120px) rotate(90deg);opacity:0}}
+.friend{animation-name:friend;animation-timing-function:ease-in-out}
+@keyframes friend{
+0%,13%{transform:translateY(-780px) rotate(0);opacity:1}
+18%{transform:translateY(-560px) rotate(-5deg)}
+22%{transform:translateY(-330px) rotate(5deg)}
+26%{transform:translateY(-120px) rotate(-3deg)}
+30%{transform:translateY(0) rotate(0) scale(1)}
+31.5%{transform:translateY(4px) scale(1.04,.96)}
+33%,64%{transform:translateY(0) scale(1)}
+66%{transform:translateY(-12px)}
+69%{transform:translateY(0)}
+88%{opacity:1;transform:translateY(0)}
+92%,100%{opacity:0;transform:translateY(0)}}
+.umb{animation-name:umb;animation-timing-function:ease-in-out}
+@keyframes umb{0%,35%{opacity:1;transform:none}38.5%,100%{opacity:0;transform:translateY(-26px) rotate(10deg)}}
+.hat{animation-name:hat;animation-timing-function:cubic-bezier(.16,1,.3,1)}
+@keyframes hat{0%,37%{transform:translateX(-50%) rotate(-7deg)}39.5%,41%{transform:translateX(-50%) translateY(-16px) rotate(-20deg)}44%,100%{transform:translateX(-50%) rotate(-7deg)}}
+.ey{animation-name:ey}
+@keyframes ey{0%,32%{transform:scaleY(1)}33%{transform:scaleY(.12)}34%,56%{transform:scaleY(1)}57%{transform:scaleY(.12)}58%,79%{transform:scaleY(1)}80%{transform:scaleY(.12)}81%,100%{transform:scaleY(1)}}
+.pp{animation-name:pp;animation-timing-function:ease-in-out}
+@keyframes pp{0%,24%{transform:translate(0,-2px)}29%,37%{transform:translate(0,4px)}46%{transform:translate(-3px,0)}50%{transform:translate(3px,0)}54%{transform:translate(-3px,0)}58%{transform:translate(3px,0)}62%{transform:translate(-3px,0)}64%,100%{transform:translate(0,0)}}
+.bl{animation-name:bl}
+.br{animation-name:br}
+@keyframes bl{0%,64%{transform:none}67%,88%{transform:translateY(1px) rotate(-16deg)}92%,100%{transform:none}}
+@keyframes br{0%,64%{transform:none}67%,88%{transform:translateY(1px) rotate(16deg)}92%,100%{transform:none}}
+.lr{animation-name:lr}
+.ly{animation-name:ly}
+.lg{animation-name:lg}
+@keyframes lr{0%,44%{opacity:0;filter:brightness(1)}46%{opacity:.9}48.5%{opacity:0}54%{opacity:.9}56.5%,63%{opacity:0;transform:scale(.92);filter:brightness(1.8)}65.5%{opacity:1;transform:scale(1.07);filter:brightness(1.4)}70%,88%{opacity:1;transform:scale(1);filter:brightness(1)}92%,100%{opacity:0}}
+@keyframes ly{0%,47%{opacity:0}49%{opacity:.9}51.5%{opacity:0}57%{opacity:.9}59.5%,100%{opacity:0}}
+@keyframes lg{0%,50%{opacity:0}52%{opacity:.9}54.5%{opacity:0}60%{opacity:.9}62.5%,100%{opacity:0}}
+.wash{animation-name:wash}
+@keyframes wash{0%,63%{opacity:0}68%{opacity:1}86%{opacity:.8}92%,100%{opacity:0}}
+.capa{animation-name:capa}
+@keyframes capa{0%,1.5%{opacity:0;transform:translateY(12px)}5%,16%{opacity:1;transform:none}19%,100%{opacity:0;transform:translateY(-8px)}}
+.capb{animation-name:capb}
+@keyframes capb{0%,20%{opacity:0;transform:translateY(12px)}23%,32%{opacity:1;transform:none}34%,100%{opacity:0;transform:translateY(-8px)}}
+.capc{animation-name:capc}
+@keyframes capc{0%,34%{opacity:0;transform:translateY(12px)}36%,43%{opacity:1;transform:none}45%,100%{opacity:0;transform:translateY(-8px)}}
+.capd{animation-name:capd}
+@keyframes capd{0%,45%{opacity:0}47%,62%{opacity:1}64%,100%{opacity:0}}
+.cape{animation-name:cape}
+@keyframes cape{0%,65%{opacity:0;transform:translateY(14px)}68%,88%{opacity:1;transform:none}91%,100%{opacity:0}}
+.card{animation-name:card;animation-timing-function:cubic-bezier(.16,1,.3,1)}
+@keyframes card{0%,70%{opacity:0;transform:translateY(240px)}75%,88%{opacity:1;transform:none}91%,100%{opacity:0;transform:none}}
+.end{animation-name:end}
+@keyframes end{0%,91%{opacity:0;transform:scale(.96)}94%,99%{opacity:1;transform:none}100%{opacity:0}}
+.tick{animation-name:tick}
+@keyframes tick{0%,46%{width:0%}62%,100%{width:100%}}
+@media (prefers-reduced-motion:reduce){
+.f{animation:none!important}
+.env,.e1,.e2,.e3,.umb,.capa,.capb,.capc,.capd,.end,.ly,.lg{opacity:0!important}
+.lr,.wash,.cape,.card{opacity:1!important}
+.bl{transform:rotate(-16deg)!important}
+.br{transform:rotate(16deg)!important}}
+</style>
+<style>.f{animation-play-state:paused!important;animation-delay:-3s!important}</style></head><body style="margin:0;background:#555">
+
+<div role="img" aria-label="Kurzfilm: Briefe regnen herab. Die Briefampel schwebt mit einem Regenschirm herunter, schirmt sie ab, nimmt den Mahnbrief unter ihren Hut, liest ihn und sagt mitfühlend: Lieber nicht lesen, ich kümmere mich." style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #121417; color: #F3F0E8; font-family: 'Source Sans 3', system-ui, sans-serif;">
+
+  <div class="f wash" style="position: absolute; inset: 0; pointer-events: none; background: radial-gradient(circle at 195px 486px, rgba(255,90,71,.34) 0%, rgba(255,90,71,.10) 30%, rgba(18,20,23,0) 62%);"></div>
+
+  <div class="f capa" style="position: absolute; top: 84px; left: 28px; right: 28px;">
+    <p style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 38px; line-height: 1.02; letter-spacing: -0.035em;">Manche Post<br>macht Angst.</p>
+  </div>
+  <div class="f capb" style="position: absolute; top: 84px; left: 28px; right: 28px;">
+    <p style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 38px; line-height: 1.02; letter-spacing: -0.035em;">Keine Sorge.<br>Ich bin da.</p>
+  </div>
+  <div class="f capc" style="position: absolute; top: 84px; left: 28px; right: 28px;">
+    <p style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 38px; line-height: 1.02; letter-spacing: -0.035em;">Gib her.<br>Ich lese zuerst.</p>
+  </div>
+  <div class="f capd" style="position: absolute; top: 100px; left: 28px; right: 28px; display: flex; flex-direction: column; gap: 14px;">
+    <span style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; letter-spacing: .12em; color: #C9CCD1;">LIEST · PRÜFT DEN TON · SUCHT FRISTEN</span>
+    <span style="display: block; height: 3px; border-radius: 2px; background: #2A2E34; overflow: hidden;"><span class="f tick" style="display: block; height: 3px; background: #F3F0E8;"></span></span>
+  </div>
+  <div class="f cape" style="position: absolute; top: 80px; left: 28px; right: 28px; display: flex; flex-direction: column; gap: 10px;">
+    <span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: .12em; color: #FF5A47;">ROT · UNANGENEHM</span>
+    <p style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 40px; line-height: 1.0; letter-spacing: -0.04em; color: #FF5A47;">Lieber nicht lesen.<br><span style="color: #F3F0E8;">Ich kümmere mich.</span></p>
+  </div>
+
+  <div class="f e1" aria-hidden="true" style="position: absolute; top: 0; left: 64px; width: 70px; height: 46px; border-radius: 4px; background: #DDD8CE; box-shadow: 0 10px 20px rgba(0,0,0,.45);">
+    <svg width="70" height="46" viewBox="0 0 70 46" fill="none"><path d="M1 2l34 24L69 2" stroke="#B5B0A5" stroke-width="1.4"></path></svg>
+  </div>
+  <div class="f e2" aria-hidden="true" style="position: absolute; top: 0; left: 252px; width: 62px; height: 42px; border-radius: 4px; background: #E6E1D7; box-shadow: 0 10px 20px rgba(0,0,0,.45);">
+    <svg width="62" height="42" viewBox="0 0 62 42" fill="none"><path d="M1 2l30 22L61 2" stroke="#B5B0A5" stroke-width="1.4"></path></svg>
+    <span style="position: absolute; left: 24px; top: 15px; width: 12px; height: 12px; border-radius: 50%; background: #C8392A;"></span>
+  </div>
+  <div class="f e3" aria-hidden="true" style="position: absolute; top: 0; left: 168px; width: 56px; height: 38px; border-radius: 4px; background: #D6D1C6; box-shadow: 0 10px 20px rgba(0,0,0,.45);">
+    <svg width="56" height="38" viewBox="0 0 56 38" fill="none"><path d="M1 2l27 20L55 2" stroke="#B0AB9F" stroke-width="1.4"></path></svg>
+  </div>
+
+  <div class="f friend" style="position: absolute; top: 360px; left: 133px; width: 124px;">
+    <svg class="f umb" aria-hidden="true" width="230" height="200" viewBox="0 0 230 200" fill="none" style="position: absolute; left: -53px; top: -205px;">
+      <path d="M5 92 Q115 -8 225 92 Q197 76 170 92 Q143 76 115 92 Q88 76 60 92 Q33 76 5 92 Z" fill="#F3F0E8"></path>
+      <path d="M5 92 Q115 -8 225 92" stroke="#D9D3C7" stroke-width="1"></path>
+      <path d="M115 10 L60 92 M115 10 L115 92 M115 10 L170 92" stroke="#CFC9BD" stroke-width="1.5"></path>
+      <path d="M115 10 Q78 40 60 92 M115 10 Q152 40 170 92" stroke="#E2DCD0" stroke-width="1"></path>
+      <circle cx="115" cy="6" r="5" fill="#FF5A47"></circle>
+      <path d="M115 92 L115 186 Q115 197 105 197 Q97 197 97 189" stroke="#C9C4B8" stroke-width="3.5" stroke-linecap="round"></path>
+    </svg>
+
+    <div style="position: relative; box-sizing: border-box; width: 124px; padding: 16px 22px 22px 22px; border-radius: 62px; display: flex; flex-direction: column; gap: 18px; align-items: center; background: linear-gradient(180deg, #23262B 0%, #0E0F11 100%); box-shadow: inset 0 1px 0 rgba(255,255,255,.08), inset 0 0 0 1px #2A2D32, 0 50px 90px rgba(0,0,0,.6);">
+      <div class="f hat" aria-hidden="true" style="position: absolute; top: -22px; left: 50%; width: 92px; height: 30px; transform: translateX(-50%) rotate(-7deg);">
+        <span style="position: absolute; left: 20px; top: 0; width: 52px; height: 23px; border-radius: 8px 8px 2px 2px; background: #F3F0E8;"></span>
+        <span style="position: absolute; left: 20px; top: 14px; width: 52px; height: 7px; background: #FF5A47;"></span>
+        <span style="position: absolute; left: 56px; top: 8px; width: 11px; height: 11px; border-radius: 50%; background: #F5B544; box-shadow: -7px 3px 0 -1px #3DD68C;"></span>
+        <span style="position: absolute; left: 0; top: 22px; width: 92px; height: 8px; border-radius: 4px; background: #E4DFD4; box-shadow: 0 3px 6px rgba(0,0,0,.35);"></span>
+      </div>
+
+      <div aria-hidden="true" style="position: relative; width: 72px; height: 52px;">
+        <span class="f bl" style="position: absolute; left: 9px; top: 1px; width: 18px; height: 8px; box-sizing: border-box; border-top: 3px solid #F3F0E8; border-radius: 50%;"></span>
+        <span class="f br" style="position: absolute; left: 45px; top: 1px; width: 18px; height: 8px; box-sizing: border-box; border-top: 3px solid #F3F0E8; border-radius: 50%;"></span>
+        <span class="f ey" style="position: absolute; left: 9px; top: 11px; width: 18px; height: 20px; border-radius: 50%; overflow: hidden; background: #FBF8F1;">
+          <span class="f pp" style="position: absolute; left: 5px; top: 6px; width: 9px; height: 10px; border-radius: 50%; background: #17191C;"><span style="position: absolute; left: 1px; top: 1px; width: 3px; height: 3px; border-radius: 50%; background: #FFFFFF;"></span></span>
+        </span>
+        <span class="f ey" style="position: absolute; left: 45px; top: 11px; width: 18px; height: 20px; border-radius: 50%; overflow: hidden; background: #FBF8F1;">
+          <span class="f pp" style="position: absolute; left: 5px; top: 6px; width: 9px; height: 10px; border-radius: 50%; background: #17191C;"><span style="position: absolute; left: 1px; top: 1px; width: 3px; height: 3px; border-radius: 50%; background: #FFFFFF;"></span></span>
+        </span>
+        <span style="position: absolute; left: 0; top: 33px; width: 14px; height: 8px; border-radius: 50%; background: rgba(255,128,110,.4); filter: blur(1.5px);"></span>
+        <span style="position: absolute; left: 58px; top: 33px; width: 14px; height: 8px; border-radius: 50%; background: rgba(255,128,110,.4); filter: blur(1.5px);"></span>
+        <span style="position: absolute; left: 27px; top: 35px; width: 18px; height: 9px; box-sizing: border-box; border-bottom: 3px solid #F3F0E8; border-radius: 0 0 12px 12px;"></span>
+      </div>
+
+      <div style="position: relative; width: 72px; height: 72px; border-radius: 50%; background: radial-gradient(circle at 38% 32%, #3B2421 0%, #251615 60%, #190F0E 100%); box-shadow: inset 0 3px 8px rgba(0,0,0,.7);">
+        <div class="f lr" style="position: absolute; inset: 0; border-radius: 50%; background: radial-gradient(circle at 38% 30%, #FFB3A6 0%, #FF5A47 38%, #C42A1B 100%); box-shadow: 0 0 28px 7px rgba(255,90,71,.6), 0 0 100px 36px rgba(255,90,71,.3);"></div>
+      </div>
+      <div style="position: relative; width: 72px; height: 72px; border-radius: 50%; background: radial-gradient(circle at 38% 32%, #392E1A 0%, #241D11 60%, #18130C 100%); box-shadow: inset 0 3px 8px rgba(0,0,0,.7);">
+        <div class="f ly" style="position: absolute; inset: 0; border-radius: 50%; background: radial-gradient(circle at 38% 30%, #FFE2A8 0%, #F5B544 40%, #C07A12 100%); box-shadow: 0 0 24px 6px rgba(245,181,68,.55);"></div>
+      </div>
+      <div style="position: relative; width: 72px; height: 72px; border-radius: 50%; background: radial-gradient(circle at 38% 32%, #1C3327 0%, #12211A 60%, #0C1611 100%); box-shadow: inset 0 3px 8px rgba(0,0,0,.7);">
+        <div class="f lg" style="position: absolute; inset: 0; border-radius: 50%; background: radial-gradient(circle at 38% 30%, #B4F7D3 0%, #3DD68C 40%, #188A50 100%); box-shadow: 0 0 24px 6px rgba(61,214,140,.5);"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="f env" aria-hidden="true" style="position: absolute; top: 430px; left: 50%; width: 236px; height: 156px;">
+    <div style="position: relative; width: 236px; height: 156px; border-radius: 6px; background: #ECE8DF; box-shadow: 0 30px 60px rgba(0,0,0,.6), inset 0 0 0 1px #D2CDC2;">
+      <svg width="236" height="156" viewBox="0 0 236 156" fill="none" style="position: absolute; inset: 0;"><path d="M2 4l116 80L234 4" stroke="#BDB8AD" stroke-width="1.6"></path></svg>
+      <span style="position: absolute; left: 18px; bottom: 16px; padding: 3px 8px; border: 2px solid #C8392A; border-radius: 3px; transform: rotate(-4deg); font-family: 'IBM Plex Mono', monospace; font-weight: 600; font-size: 12px; letter-spacing: .08em; color: #C8392A;">LETZTE MAHNUNG</span>
+      <span style="position: absolute; left: 102px; top: 66px; width: 32px; height: 32px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #FF7A69 0%, #D63A2A 60%, #A72417 100%); box-shadow: 0 3px 6px rgba(0,0,0,.4);"></span>
+    </div>
+  </div>
+
+  <div class="f card" style="position: absolute; left: 16px; right: 16px; bottom: 30px; border-radius: 26px; background: #1A1D21; box-shadow: inset 0 1px 0 rgba(255,255,255,.07), 0 -20px 50px rgba(0,0,0,.4); padding: 20px; display: flex; flex-direction: column; gap: 12px;">
+    <span style="font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; letter-spacing: .08em; color: #8E949B;">INKASSO NORDWEST · 312,40 €</span>
+    <div style="display: flex; align-items: baseline; gap: 10px;">
+      <span style="font-family: 'IBM Plex Mono', monospace; font-weight: 600; font-size: 44px; line-height: .9; color: #FF5A47;">3</span>
+      <span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 20px;">Tage Zeit – reicht völlig</span>
+    </div>
+    <p style="margin: 0; font-size: 16px; line-height: 1.4; color: #D6D8DB;">Mein Rat: Forderung bestreiten. Die Antwort schreibe ich dir.</p>
+  </div>
+
+  <div class="f end" style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; background: #121417;">
+    <div aria-hidden="true" style="display: flex; flex-direction: column; gap: 6px; padding: 9px; border-radius: 18px; background: #0B0C0E; box-shadow: inset 0 0 0 1px #262A2F;">
+      <span style="width: 14px; height: 14px; border-radius: 50%; background: #FF5A47; box-shadow: 0 0 12px rgba(255,90,71,.7);"></span>
+      <span style="width: 14px; height: 14px; border-radius: 50%; background: #F5B544;"></span>
+      <span style="width: 14px; height: 14px; border-radius: 50%; background: #3DD68C;"></span>
+    </div>
+    <span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 44px; letter-spacing: -0.035em;">Briefampel</span>
+    <span style="font-size: 18px; color: #C9CCD1;">Liest zuerst. Für dich.</span>
+  </div>
+</div>
+</body></html>

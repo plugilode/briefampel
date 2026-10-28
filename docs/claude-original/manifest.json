@@ -1,0 +1,92 @@
+{
+  "Antwort.html": {
+    "sha256": "452b18ec52d57e1432c0641414c40c3b706bdd47fba83d236e98b95c39fc5fb6",
+    "width": 390,
+    "height": 1680
+  },
+  "Einwilligung.html": {
+    "sha256": "a72a27e679b795dec689bf0d5f4723f271ac8b7f709c10862791a43991bb2fd0",
+    "width": 390,
+    "height": 844
+  },
+  "Ergebnis-Gelb-Hell.html": {
+    "sha256": "b3da89db0714154e3071b923a9ebcc817ab39db860a144268590bc9012e12307",
+    "width": 390,
+    "height": 1040
+  },
+  "Ergebnis-Gruen.html": {
+    "sha256": "69938fac1aa8b45daa46d2373b44956a489298cbea891d67244d2a4b0d8a8a6c",
+    "width": 390,
+    "height": 1020
+  },
+  "Ergebnis-Rot.html": {
+    "sha256": "b95d59f833e6a69d79b2c5b915daaca655cf7a1312793c976aa652929c015497",
+    "width": 390,
+    "height": 1580
+  },
+  "Film-1.html": {
+    "sha256": "84a7c6b282b30e29bf2d86a1a091f7380078065b96ceb9f486944c7785ccae8d",
+    "width": 390,
+    "height": 844
+  },
+  "Film-10.5.html": {
+    "sha256": "32febeb230744951eb9939cb873bd7c2c2337d7ef3649424aac4705adc686ae2",
+    "width": 390,
+    "height": 844
+  },
+  "Film-13.4.html": {
+    "sha256": "f1ad9849b84849dc3437cc874921b11c0740d963b1809d2b2adedc6bec832b38",
+    "width": 390,
+    "height": 844
+  },
+  "Film-3.html": {
+    "sha256": "d45cadfe052adda55a79ae2168b423bb38df5f16f04a0909067d259dba27bf2f",
+    "width": 390,
+    "height": 844
+  },
+  "Film-4.6.html": {
+    "sha256": "6b1c8402cf38237ffdd3039036d752314dc192174c72965956f38ff23677fde7",
+    "width": 390,
+    "height": 844
+  },
+  "Film-5.6.html": {
+    "sha256": "4bb23c45a0f46466cf489b8cbe605a30bef21f62b99224a84abdd9072fb2179d",
+    "width": 390,
+    "height": 844
+  },
+  "Film-8.html": {
+    "sha256": "16be6286ac995bfd55e36b782a1a3026274be3bfaaf7d4436f60594e4bcbc41a",
+    "width": 390,
+    "height": 844
+  },
+  "Main-checking.html": {
+    "sha256": "fde948de081609885c922f6b071467fc133a99c2bfca00d67c640dba704785f8",
+    "width": 390,
+    "height": 844
+  },
+  "Main-gelb.html": {
+    "sha256": "99d5322e209387f4fb9497fcde8b69883aab841000aa40a01d12e0c1f4d3845f",
+    "width": 390,
+    "height": 844
+  },
+  "Main-gruen.html": {
+    "sha256": "9a7c781195a086ba9901b70841708a446dd0e173e83cd5c271ac14165b7cc98b",
+    "width": 390,
+    "height": 844
+  },
+  "Main-idle.html": {
+    "sha256": "2a21747cb23c0a0b2c999b30989d6e5ca4efed7365e991550615bd1dd3c53462",
+    "width": 390,
+    "height": 844
+  },
+  "Main-pages.html": {
+    "sha256": "09d2d7ee4fa38e03c270d84413196f3bba810a856c2dd2bab460eef4066da1ca",
+    "width": 390,
+    "height": 844
+  },
+  "Main-rot.html": {
+    "sha256": "2c29fcf4be23f3104efe5f570590bbc5b8f4024aebd5f0a8287156684a1e22a9",
+    "width": 390,
+    "height": 844
+  }
+}

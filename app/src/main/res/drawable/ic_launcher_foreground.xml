@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Die Briefampel mit Hut: Gehäuse, drei Lampen, Hut mit rotem Band. Innerhalb der 66er-Schutzzone. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#23262B"
+        android:pathData="M54,31 L54,31 C61.7,31 68,37.3 68,45 L68,73 C68,80.7 61.7,87 54,87 C46.3,87 40,80.7 40,73 L40,45 C40,37.3 46.3,31 54,31 Z" />
+    <path
+        android:fillColor="#FF5A47"
+        android:pathData="M54,43.5 m-7.5,0 a7.5,7.5 0,1 1,15 0 a7.5,7.5 0,1 1,-15 0" />
+    <path
+        android:fillColor="#F5B544"
+        android:pathData="M54,59 m-7.5,0 a7.5,7.5 0,1 1,15 0 a7.5,7.5 0,1 1,-15 0" />
+    <path
+        android:fillColor="#3DD68C"
+        android:pathData="M54,74.5 m-7.5,0 a7.5,7.5 0,1 1,15 0 a7.5,7.5 0,1 1,-15 0" />
+    <path
+        android:fillColor="#F3F0E8"
+        android:pathData="M44,22 Q44,20 46,20 L62,20 Q64,20 64,22 L64,30 L44,30 Z" />
+    <path
+        android:fillColor="#FF5A47"
+        android:pathData="M44,26 L64,26 L64,28.5 L44,28.5 Z" />
+    <path
+        android:fillColor="#E4DFD4"
+        android:pathData="M37.5,29.5 L70.5,29.5 Q72,29.5 72,31 Q72,32.5 70.5,32.5 L37.5,32.5 Q36,32.5 36,31 Q36,29.5 37.5,29.5 Z" />
+</vector>

@@ -1,0 +1,386 @@
+<title>Briefampel</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+/* Layout: one narrow column like a sorting desk — drop letter on top, verdict card, then the reply workbench */
+:root{
+  --bg:#eef0f3; --paper:#ffffff; --ink:#18212e; --muted:#5b6575; --line:#d5dae2;
+  --accent:#2b4bd6; --accent-ink:#ffffff; --soft:#e3e8fb;
+  --red:#d33a2c; --red-soft:#fbe5e2; --amber:#c77d00; --amber-soft:#fcefd4; --green:#1f8a4c; --green-soft:#dcf2e4;
+  --lamp-off:#c9ced8;
+  --f-display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body:"Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#11151c; --paper:#1a202a; --ink:#e8ecf2; --muted:#9aa4b4; --line:#2d3644;
+  --accent:#7d95ff; --accent-ink:#0d1220; --soft:#222c47;
+  --red:#ff6b5c; --red-soft:#3a1f1d; --amber:#f2b23c; --amber-soft:#3a2d15; --green:#4fcf86; --green-soft:#16301f;
+  --lamp-off:#333c4a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#11151c; --paper:#1a202a; --ink:#e8ecf2; --muted:#9aa4b4; --line:#2d3644;
+  --accent:#7d95ff; --accent-ink:#0d1220; --soft:#222c47;
+  --red:#ff6b5c; --red-soft:#3a1f1d; --amber:#f2b23c; --amber-soft:#3a2d15; --green:#4fcf86; --green-soft:#16301f;
+  --lamp-off:#333c4a; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:16px/1.5 var(--f-body);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
+.wrap{max-width:680px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+header{display:flex;align-items:center;gap:14px}
+.mini-lamp{display:flex;flex-direction:column;gap:3px;background:var(--ink);padding:5px;border-radius:9px}
+.mini-lamp i{width:11px;height:11px;border-radius:50%;display:block}
+.mini-lamp i:nth-child(1){background:var(--red)}.mini-lamp i:nth-child(2){background:var(--amber)}.mini-lamp i:nth-child(3){background:var(--green)}
+h1{font:800 clamp(28px,6vw,38px)/1 var(--f-display);margin:0;letter-spacing:-.02em}
+.tag{color:var(--muted);margin:2px 0 0;font-size:15px}
+h2{font:700 20px/1.2 var(--f-display);margin:0;text-wrap:balance}
+.label{font:600 12px/1 var(--f-body);text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.panel{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:14px}
+.drop{border:2px dashed var(--line);border-radius:12px;padding:22px 16px;text-align:center;cursor:pointer;display:flex;flex-direction:column;gap:6px;align-items:center;transition:border-color .15s,background .15s}
+.drop:hover,.drop.over,.drop:focus-visible{border-color:var(--accent);background:var(--soft);outline:none}
+.drop strong{font:700 17px var(--f-display)}
+.drop span{color:var(--muted);font-size:14px}
+.files{display:flex;flex-wrap:wrap;gap:8px}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--soft);color:var(--ink);border:1px solid transparent;border-radius:999px;padding:5px 11px;font-size:14px;cursor:pointer;font-family:var(--f-body)}
+.chip:hover{border-color:var(--accent)}
+.chip.on{background:var(--accent);color:var(--accent-ink)}
+.chip button{all:unset;cursor:pointer;font-weight:700;padding:0 2px}
+details summary{cursor:pointer;color:var(--accent);font-weight:600;font-size:15px}
+textarea,input[type=text]{width:100%;font:15px/1.45 var(--f-body);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+textarea:focus,input:focus{outline:2px solid var(--accent);outline-offset:1px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.btn{font:700 16px var(--f-body);border:0;border-radius:10px;padding:12px 18px;cursor:pointer;background:var(--accent);color:var(--accent-ink)}
+.btn:disabled{opacity:.5;cursor:default}
+.btn.ghost{background:transparent;color:var(--accent);border:1px solid var(--line)}
+.btn:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+.status{color:var(--muted);font-size:14px;min-height:1.2em}
+.status.err{color:var(--red)}
+
+/* verdict */
+.verdict{display:grid;grid-template-columns:auto 1fr;gap:18px;align-items:start}
+.lamp{background:var(--ink);border-radius:16px;padding:9px;display:flex;flex-direction:column;gap:7px}
+.lamp i{width:34px;height:34px;border-radius:50%;background:var(--lamp-off);display:block;transition:background .3s,box-shadow .3s}
+.lamp[data-l=rot] i:nth-child(1){background:var(--red);box-shadow:0 0 18px var(--red)}
+.lamp[data-l=gelb] i:nth-child(2){background:var(--amber);box-shadow:0 0 18px var(--amber)}
+.lamp[data-l=gruen] i:nth-child(3){background:var(--green);box-shadow:0 0 18px var(--green)}
+.vtext{min-width:0;display:flex;flex-direction:column;gap:8px}
+.pill{align-self:flex-start;font:700 13px var(--f-body);letter-spacing:.04em;text-transform:uppercase;padding:4px 10px;border-radius:999px}
+.pill.rot{background:var(--red-soft);color:var(--red)}.pill.gelb{background:var(--amber-soft);color:var(--amber)}.pill.gruen{background:var(--green-soft);color:var(--green)}
+.meta{font:13px/1.5 var(--f-mono);color:var(--muted);word-break:break-word}
+.kurz{font-size:17px;margin:0}
+.facts{display:grid;grid-template-columns:1fr;gap:0;border-top:1px solid var(--line)}
+.fact{display:grid;grid-template-columns:140px 1fr;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
+.fact dt{font-weight:600;color:var(--muted);font-size:14px}
+.fact dd{margin:0;min-width:0}
+.frist{font:500 15px var(--f-mono)}
+.frist.hot{color:var(--red);font-weight:500}
+.ex{font:600 12px var(--f-body);background:var(--amber-soft);color:var(--amber);padding:3px 8px;border-radius:6px;align-self:flex-start;text-transform:uppercase;letter-spacing:.06em}
+
+/* reply */
+.draft{white-space:pre-wrap;font:15px/1.6 var(--f-body);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:16px;min-height:120px;overflow-wrap:anywhere}
+.seg{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.seg button{flex:1;font:600 14px var(--f-body);background:transparent;color:var(--ink);border:0;padding:9px 6px;cursor:pointer}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button.on{background:var(--accent);color:var(--accent-ink)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.foot{color:var(--muted);font-size:13px;text-align:center;max-width:58ch;margin:0 auto}
+@media (max-width:520px){.fact{grid-template-columns:1fr;gap:2px}.grid2{grid-template-columns:1fr}.lamp i{width:26px;height:26px}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="mini-lamp" aria-hidden="true"><i></i><i></i><i></i></div>
+    <div>
+      <h1>Briefampel</h1>
+      <p class="tag">Brief hochladen. Ampel sagen lassen, ob du ihn lesen musst.</p>
+    </div>
+  </header>
+
+  <section class="panel" aria-labelledby="h-in">
+    <h2 id="h-in">Brief rein</h2>
+    <label class="drop" id="drop" tabindex="0">
+      <strong>PDF oder Fotos hier ablegen</strong>
+      <span>oder tippen zum Auswählen · mehrere Seiten gehen</span>
+      <input id="file" type="file" accept="application/pdf,image/png,image/jpeg,image/webp" multiple hidden>
+    </label>
+    <div class="files" id="files"></div>
+    <details>
+      <summary>Text stattdessen einfügen (E-Mail, Fax-Text)</summary>
+      <textarea id="paste" rows="6" placeholder="Brieftext hier einfügen…" style="margin-top:10px"></textarea>
+    </details>
+    <div class="row">
+      <button class="btn" id="go">Ampel prüfen</button>
+      <span class="status" id="st" role="status"></span>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="h-v" id="result">
+    <span class="ex" id="exTag">Beispiel – lade deinen eigenen Brief hoch</span>
+    <div class="verdict">
+      <div class="lamp" id="lamp" data-l="rot" aria-hidden="true"><i></i><i></i><i></i></div>
+      <div class="vtext">
+        <span class="pill rot" id="pill">Rot · lieber nicht lesen</span>
+        <h2 id="h-v">Mahnung mit Klageandrohung</h2>
+        <div class="meta" id="meta">Inkasso Nordwest GmbH · 14.10.2026 · Az. INK-55821/26</div>
+        <p class="kurz" id="kurz">Ein Inkassobüro verlangt 312,40 € für eine angeblich offene Handyrechnung plus Gebühren und droht mit gerichtlichem Mahnverfahren, wenn nicht gezahlt wird.</p>
+      </div>
+    </div>
+    <dl class="facts" id="facts">
+      <div class="fact"><dt>Was wollen sie</dt><dd>Zahlung von 312,40 € (Hauptforderung 189,90 €, Rest Inkassokosten und Zinsen).</dd></div>
+      <div class="fact"><dt>Frist</dt><dd><span class="frist hot">28.10.2026</span> · Zahlungsfrist laut Schreiben, keine gesetzliche Frist</dd></div>
+      <div class="fact"><dt>Ton</dt><dd>Drohend · Formulierungen wie „letzte Aufforderung“, Hinweis auf SCHUFA</dd></div>
+      <div class="fact"><dt>Risiko</dt><dd>Bei Schweigen wahrscheinlich Mahnbescheid. Inkassokosten wirken überhöht.</dd></div>
+      <div class="fact"><dt>Empfehlung</dt><dd>Forderung bestreiten, Nachweise anfordern, SCHUFA-Eintrag bei bestrittener Forderung widersprechen.</dd></div>
+    </dl>
+    <details id="fullWrap" hidden>
+      <summary>Brief doch komplett lesen</summary>
+      <div class="draft" id="fullText" style="margin-top:10px"></div>
+    </details>
+  </section>
+
+  <section class="panel" aria-labelledby="h-r" id="reply">
+    <h2 id="h-r">Soll ich antworten?</h2>
+    <p style="margin:0;color:var(--muted)">Gib mir ein paar Stichworte, was rein soll. Den Rest schreibe ich.</p>
+    <div>
+      <div class="label" style="margin-bottom:8px">Vorschläge (antippen)</div>
+      <div class="files" id="sugg">
+        <button class="chip" type="button">Forderung bestreiten</button>
+        <button class="chip" type="button">Vertrag und Rechnung als Nachweis anfordern</button>
+        <button class="chip" type="button">Inkassokosten zurückweisen</button>
+        <button class="chip" type="button">SCHUFA-Eintrag widersprechen</button>
+      </div>
+    </div>
+    <label class="label" for="kw">Deine Stichworte</label>
+    <textarea id="kw" rows="3" placeholder="z. B. nie Vertrag abgeschlossen, Rechnung nie erhalten, bitte Nachweis"></textarea>
+    <div>
+      <div class="label" style="margin-bottom:8px">Ton</div>
+      <div class="seg" id="tone" role="group" aria-label="Ton der Antwort">
+        <button type="button" data-t="freundlich">Freundlich</button>
+        <button type="button" data-t="sachlich" class="on">Sachlich</button>
+        <button type="button" data-t="bestimmt">Bestimmt</button>
+        <button type="button" data-t="scharf">Scharf</button>
+      </div>
+    </div>
+    <details>
+      <summary>Absender (wird nur in diesem Browser gemerkt)</summary>
+      <div class="grid2" style="margin-top:10px">
+        <input type="text" id="sName" placeholder="Name">
+        <input type="text" id="sMail" placeholder="E-Mail">
+      </div>
+      <textarea id="sAddr" rows="2" placeholder="Anschrift" style="margin-top:10px"></textarea>
+    </details>
+    <div class="row">
+      <button class="btn" id="write">Antwort schreiben</button>
+      <button class="btn ghost" id="stop" hidden>Stopp</button>
+      <span class="status" id="st2" role="status"></span>
+    </div>
+    <div class="draft" id="draft" hidden></div>
+    <div class="row" id="draftActions" hidden>
+      <button class="btn ghost" id="copy">Kopieren</button>
+      <button class="btn ghost" id="again">Neu formulieren</button>
+    </div>
+  </section>
+
+  <p class="foot">Die Briefampel sortiert und entwirft. Sie ersetzt keine Rechtsberatung (RDG). Fristen immer selbst gegenprüfen, bevor du dich darauf verlässt.</p>
+</div>
+
+<script>
+(() => {
+const $ = id => document.getElementById(id);
+const state = { files: [], text: "", images: [], analysis: null, tone: "sachlich", example: true };
+let sample = null, limits = null, ctl = null;
+
+// --- pdf.js worker via blob (CSP-safe)
+try {
+  const wsrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+  pdfjsLib.GlobalWorkerOptions.workerSrc = URL.createObjectURL(new Blob([`importScripts("${wsrc}");`], {type:"text/javascript"}));
+} catch(e) {}
+
+// --- sender memory
+const store = { get(k){ try{return localStorage.getItem(k)||""}catch(e){return ""} }, set(k,v){ try{localStorage.setItem(k,v)}catch(e){} } };
+["sName","sMail","sAddr"].forEach(id => { $(id).value = store.get("ba_"+id); $(id).addEventListener("input", e => store.set("ba_"+id, e.target.value)); });
+
+// --- claude
+(async () => {
+  sample = await claude.use("sample");
+  if (!sample) { setSt("st", "Claude ist in dieser Ansicht nicht verfügbar. Öffne die Seite in Claude.", true); $("go").disabled = true; $("write").disabled = true; return; }
+  limits = await sample.limits().catch(() => null);
+})();
+
+function setSt(id, msg, err){ const el=$(id); el.textContent = msg; el.classList.toggle("err", !!err); }
+function errCopy(code){
+  return ({not_granted:"Du hast den Zugriff auf Claude nicht erlaubt.", rate_limited:"Gerade zu viele Anfragen. Bitte gleich nochmal versuchen.",
+    session_expired:"Bitte neu bei Claude anmelden.", image_rejected:"Eine Datei konnte nicht gelesen werden. Andere Datei probieren.",
+    images_unavailable:"Bilder gehen in dieser Ansicht nicht. Text einfügen statt Foto.", prompt_too_large:"Der Brief ist zu lang. Weniger Seiten hochladen.",
+    refused:"Claude hat diese Anfrage abgelehnt.", invalid_json:"Antwort war unvollständig. Bitte nochmal prüfen.",
+    sampling_disabled:"Claude ist für dieses Konto nicht verfügbar."}[code]) || "Etwas ist schiefgelaufen. Bitte nochmal versuchen.";
+}
+
+// --- files
+const drop = $("drop"), fileIn = $("file");
+drop.addEventListener("keydown", e => { if (e.key==="Enter"||e.key===" ") { e.preventDefault(); fileIn.click(); } });
+["dragenter","dragover"].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.add("over"); }));
+["dragleave","drop"].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.remove("over"); }));
+drop.addEventListener("drop", e => addFiles(e.dataTransfer.files));
+fileIn.addEventListener("change", e => { addFiles(e.target.files); fileIn.value = ""; });
+document.addEventListener("paste", e => { const imgs=[...(e.clipboardData?.files||[])].filter(f=>f.type.startsWith("image/")); if (imgs.length) addFiles(imgs); });
+
+function addFiles(list){ for (const f of list) if (/pdf|image\//.test(f.type)) state.files.push(f); renderFiles(); }
+function renderFiles(){
+  const box = $("files"); box.innerHTML = "";
+  state.files.forEach((f,i) => {
+    const c = document.createElement("span"); c.className = "chip";
+    c.textContent = (f.type.includes("pdf") ? "PDF · " : "Bild · ") + f.name.slice(0,32) + " ";
+    const x = document.createElement("button"); x.type="button"; x.textContent="×"; x.setAttribute("aria-label", f.name+" entfernen");
+    x.onclick = () => { state.files.splice(i,1); renderFiles(); };
+    c.append(x); box.append(c);
+  });
+}
+
+async function pdfToContent(file){
+  const pdf = await pdfjsLib.getDocument({data: await file.arrayBuffer()}).promise;
+  let text = ""; const pages = Math.min(pdf.numPages, 12);
+  for (let p=1; p<=pages; p++){ const pg = await pdf.getPage(p); const tc = await pg.getTextContent(); text += tc.items.map(i=>i.str).join(" ") + "\n\n"; }
+  const imgs = [];
+  if (text.replace(/\s/g,"").length < 150*pages) { // scanned PDF -> render pages
+    for (let p=1; p<=Math.min(pdf.numPages, 5); p++){
+      const pg = await pdf.getPage(p); const vp = pg.getViewport({scale:1.7});
+      const cv = document.createElement("canvas"); cv.width = vp.width; cv.height = vp.height;
+      await pg.render({canvasContext: cv.getContext("2d"), viewport: vp}).promise;
+      imgs.push(await new Promise(r => cv.toBlob(r, "image/jpeg", .85)));
+    }
+    text = "";
+  }
+  return {text, imgs};
+}
+
+async function collect(){
+  let text = $("paste").value.trim(); let imgs = [];
+  for (const f of state.files){
+    if (f.type.includes("pdf")) { const r = await pdfToContent(f); if (r.text) text += "\n\n" + r.text; imgs.push(...r.imgs); }
+    else imgs.push(f);
+  }
+  const max = limits?.images?.maxCount ?? 0;
+  if (imgs.length && !limits?.images) throw {code:"images_unavailable"};
+  return {text: text.trim().slice(0, 60000), imgs: imgs.slice(0, max || imgs.length)};
+}
+
+const today = () => new Date().toLocaleDateString("de-DE");
+
+// --- analyse
+$("go").addEventListener("click", async () => {
+  if (!sample) return;
+  if (!state.files.length && !$("paste").value.trim()) { setSt("st", "Erst einen Brief hochladen oder Text einfügen.", true); return; }
+  $("go").disabled = true; setSt("st", "Lese den Brief…");
+  try {
+    const {text, imgs} = await collect();
+    state.text = text; state.images = imgs;
+    setSt("st", "Prüfe Ton und Fristen…");
+    const prompt = `Du bist eine erfahrene deutsche Rechtsanwaltsfachangestellte. Ein Mandant hat einen Brief bekommen und will NICHT lesen, ob er unangenehm ist. Prüfe den Brief (${imgs.length ? imgs.length+" Bild(er) der Seiten" : ""}${imgs.length && text ? " und " : ""}${text ? "extrahierter Text" : ""}). Heute ist der ${today()}.
+
+Ampel:
+- "gruen": harmlos, freundlich oder reine Info; kann man entspannt lesen, keine Handlung nötig.
+- "gelb": Handlung oder Antwort nötig, aber sachlich/neutral im Ton.
+- "rot": unangenehm, fordernd, drohend oder feindselig ODER gefährlich (Klage, Mahnbescheid, Vollstreckung, Kündigung, Bescheid mit Rechtsbehelfsfrist, Strafanzeige, Fristsetzung mit Konsequenz).
+
+Beschreibe in einfacher, ruhiger Sprache, damit der Mandant den Brief nicht selbst lesen muss. Erfinde nichts; was nicht im Brief steht ist null. Bei Fristen: nenne das Datum, wenn es im Brief steht oder sich sicher aus Zustellung + gesetzlicher Frist ergibt (z. B. 1 Monat Widerspruch, 2 Wochen Einspruch gegen Mahnbescheid/Vollstreckungsbescheid); sonst null und im hinweis sagen, was fehlt.
+
+Antworte NUR mit JSON in genau dieser Form:
+{"ampel":"gruen|gelb|rot","titel":"kurzer Titel, z.B. Mahnung mit Klageandrohung","absender":"...","datum":"TT.MM.JJJJ oder null","aktenzeichen":"... oder null","kurz":"2-3 Sätze, worum es geht","verlangt":"was wollen sie konkret, oder null","frist":{"datum":"TT.MM.JJJJ oder null","hinweis":"was ist die Frist und woher kommt sie"},"ton":"freundlich|neutral|fordernd|drohend|feindselig","tonnotiz":"kurz warum","risiko":"was passiert, wenn man nichts tut","antwort_noetig":true,"empfehlung":"1-2 Sätze","stichwort_vorschlaege":["3-5 kurze mögliche Antwortpunkte"],"sprache":"de"}
+${text ? "\n--- BRIEFTEXT ---\n" + text : ""}`;
+    const a = await sample.json(prompt, imgs.length ? {images: imgs} : {});
+    state.analysis = a; state.example = false;
+    render(a);
+    setSt("st", "Fertig.");
+    $("result").scrollIntoView({behavior:"smooth", block:"start"});
+  } catch (e) { setSt("st", errCopy(e.code), true); }
+  finally { $("go").disabled = false; }
+});
+
+const PILL = {rot:"Rot · lieber nicht lesen", gelb:"Gelb · kümmern, aber harmlos im Ton", gruen:"Grün · kannst du entspannt lesen"};
+function render(a){
+  const l = ["rot","gelb","gruen"].includes(a.ampel) ? a.ampel : "gelb";
+  $("exTag").hidden = true;
+  $("lamp").dataset.l = l;
+  const p = $("pill"); p.className = "pill " + l; p.textContent = PILL[l];
+  $("h-v").textContent = a.titel || "Brief";
+  $("meta").textContent = [a.absender, a.datum, a.aktenzeichen && ("Az. " + a.aktenzeichen)].filter(Boolean).join(" · ");
+  $("kurz").textContent = a.kurz || "";
+  const facts = $("facts"); facts.innerHTML = "";
+  const add = (k, v, cls) => { if (!v) return; const d=document.createElement("div"); d.className="fact"; const dt=document.createElement("dt"); dt.textContent=k; const dd=document.createElement("dd"); if (cls){ const s=document.createElement("span"); s.className=cls; s.textContent=v[0]; dd.append(s, v[1] ? " · " + v[1] : ""); } else dd.textContent=v; d.append(dt,dd); facts.append(d); };
+  add("Was wollen sie", a.verlangt);
+  if (a.frist && (a.frist.datum || a.frist.hinweis)) add("Frist", [a.frist.datum || "unklar", a.frist.hinweis], "frist" + (fristHot(a.frist.datum) ? " hot" : ""));
+  add("Ton", [a.ton, a.tonnotiz].filter(Boolean).join(" · "));
+  add("Risiko", a.risiko);
+  add("Empfehlung", a.empfehlung);
+  // full text option
+  $("fullWrap").hidden = !state.text; $("fullWrap").open = false; $("fullText").textContent = state.text;
+  // suggestions
+  const sg = $("sugg"); sg.innerHTML = "";
+  (a.stichwort_vorschlaege || []).forEach(s => { const b=document.createElement("button"); b.type="button"; b.className="chip"; b.textContent=s; sg.append(b); });
+  $("kw").value = ""; $("draft").hidden = true; $("draftActions").hidden = true;
+  $("h-r").textContent = a.antwort_noetig === false ? "Antwort nicht nötig – trotzdem eine?" : "Soll ich antworten?";
+}
+function fristHot(d){ if(!d) return false; const m=d.match(/(\d{1,2})\.(\d{1,2})\.(\d{4})/); if(!m) return false; const t=new Date(+m[3],m[2]-1,+m[1]); return (t-new Date())/864e5 < 7; }
+
+// --- suggestions -> keywords
+$("sugg").addEventListener("click", e => {
+  const b = e.target.closest(".chip"); if (!b) return;
+  b.classList.toggle("on");
+  const kw = $("kw"); const s = b.textContent;
+  const parts = kw.value.split("\n").map(x=>x.trim()).filter(Boolean);
+  kw.value = (b.classList.contains("on") ? [...parts, s] : parts.filter(x => x !== s)).join("\n");
+});
+$("tone").addEventListener("click", e => { const b=e.target.closest("button"); if(!b) return; [...$("tone").children].forEach(x=>x.classList.toggle("on", x===b)); state.tone=b.dataset.t; });
+
+// --- write reply
+async function writeReply(){
+  if (!sample) return;
+  if (state.example) { setSt("st2", "Lade zuerst deinen eigenen Brief hoch.", true); return; }
+  const kw = $("kw").value.trim();
+  if (!kw) { setSt("st2", "Ein paar Stichworte brauche ich.", true); return; }
+  ctl = new AbortController();
+  $("write").disabled = true; $("stop").hidden = false; $("draft").hidden = false; $("draftActions").hidden = true;
+  $("draft").textContent = ""; setSt("st2", "Schreibe…");
+  const a = state.analysis;
+  const sender = [ $("sName").value, $("sAddr").value, $("sMail").value ].map(s=>s.trim()).filter(Boolean).join("\n");
+  const prompt = `Du bist eine erfahrene deutsche Rechtsanwaltsfachangestellte und schreibst für den Mandanten (der selbst schreibt, ohne Anwalt) eine Antwort auf den Brief unten. Heute ist der ${today()}.
+
+Ton: ${state.tone}. Sprache: die Sprache des eingegangenen Briefs (${a.sprache || "de"}).
+Was der Mandant sagen will (Stichworte, nur diese Punkte, nichts dazuerfinden):
+${kw}
+
+Absender: ${sender || "[Name]\n[Anschrift]"}
+
+Regeln:
+- Fertiger Brief: Absender, Empfänger (aus dem Brief), Ort/Datum, Betreff mit Aktenzeichen/Zeichen des Briefs, Anrede, Text, Grußformel, Name.
+- Fehlende Angaben als [Platzhalter in eckigen Klammern], keine erfundenen Tatsachen, Daten oder Beträge.
+- Normen nur nennen, wenn sicher passend. Keine Zugeständnisse oder Anerkenntnisse, die nicht in den Stichworten stehen.
+- Bei "scharf": deutlich, aber ohne Beleidigung.
+- Gib NUR den Brief aus, ohne Vorbemerkung.
+
+Zusammenfassung des Briefs: ${JSON.stringify(a)}
+${state.text ? "\n--- BRIEFTEXT ---\n" + state.text : ""}`;
+  try {
+    const opts = { signal: ctl.signal, cache: false, onText: ({text}) => { $("draft").textContent = text; } };
+    if (state.images.length && !state.text) opts.images = state.images;
+    const r = await sample(prompt, opts);
+    setSt("st2", r.truncated ? "Wurde abgeschnitten. Weniger Stichworte probieren." : "Entwurf fertig. Platzhalter in [ ] noch füllen.");
+    $("draftActions").hidden = false;
+  } catch (e) {
+    $("draft").textContent = e.text || "";
+    if (e.code !== "cancelled") setSt("st2", errCopy(e.code), true); else setSt("st2", "Gestoppt.");
+    if (e.text) $("draftActions").hidden = false;
+  } finally { $("write").disabled = false; $("stop").hidden = true; }
+}
+$("write").addEventListener("click", writeReply);
+$("again").addEventListener("click", writeReply);
+$("stop").addEventListener("click", () => ctl?.abort());
+$("copy").addEventListener("click", async () => {
+  const t = $("draft").textContent;
+  try { await navigator.clipboard.writeText(t); setSt("st2", "Kopiert."); }
+  catch(e){ const r=document.createRange(); r.selectNodeContents($("draft")); const s=getSelection(); s.removeAllRanges(); s.addRange(r); setSt("st2", "Markiert – jetzt kopieren."); }
+});
+})();
+</script>

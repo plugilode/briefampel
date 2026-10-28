@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "design-preview",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8765", "--directory", "C:/Users/Shadow/AppData/Local/Temp/claude/C--Users-Shadow-ampel/1d75cc47-62cb-4fd8-a0fc-d5d232a97aca/scratchpad/preview"],
+      "port": 8765
+    }
+  ]
+}

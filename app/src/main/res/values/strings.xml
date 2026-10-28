@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Briefampel</string>
+
+    <string name="rdg_hinweis">Sortiert und entwirft. Ersetzt keine Rechtsberatung – Fristen selbst gegenprüfen.</string>
+    <string name="absender_einstellungen">Absender und Einstellungen</string>
+
+    <string name="kopf_eingang">Gib her.\nIch lese\nzuerst.</string>
+    <string name="unter_eingang">Ich bin da. Du siehst nur die Ampel – und was zu tun ist.</string>
+    <string name="kopf_seiten">Drei\nSeiten.\nBereit.</string>
+    <string name="unter_seiten">Ich schaue rein, du musst es nicht.</string>
+    <string name="kopf_liest">Moment.\nIch lese\nfür dich.</string>
+
+    <string name="kopf_rot">Lieber\nnicht\nlesen.</string>
+    <string name="kopf_gelb">Kümmern.\nAber ganz\nsachlich.</string>
+    <string name="kopf_gruen">Ganz\nentspannt\nlesen.</string>
+    <string name="marke_rot">ROT · ICH KÜMMERE MICH</string>
+    <string name="marke_gelb">GELB · HANDELN, KEIN ÄRGER</string>
+    <string name="marke_gruen">GRÜN · HARMLOS</string>
+
+    <string name="figur_wartet">Briefampel, eine freundliche Ampel mit Gesicht und Hut</string>
+    <string name="figur_liest">Briefampel liest gerade</string>
+    <string name="figur_rot">Ampel: Rot – lieber nicht lesen</string>
+    <string name="figur_gelb">Ampel: Gelb – kümmern, aber sachlich</string>
+    <string name="figur_gruen">Ampel: Grün – harmlos</string>
+
+    <string name="hinweis_teilen">Oder ein PDF direkt aus der Mail-App teilen.</string>
+    <string name="aktion_scannen">Brief scannen</string>
+    <string name="aktion_datei">Datei</string>
+    <string name="aktion_text">Text einfügen</string>
+    <string name="aktion_beispiel">Erst mal ein Beispiel ansehen</string>
+
+    <string name="im_umschlag">IM UMSCHLAG</string>
+    <string name="seiten_beispiel">3 Seiten · Beispielbrief</string>
+    <string name="aktion_pruefen">Ampel prüfen</string>
+    <string name="aktion_verwerfen">Seiten verwerfen</string>
+
+    <string name="schritt_gelesen">3 Seiten gelesen</string>
+    <string name="schritt_ton">Ton und Absender</string>
+    <string name="schritt_fristen">Fristen suchen</string>
+
+    <string name="beispiel_marke">BEISPIEL</string>
+    <string name="aktion_neuer_brief">Neuer Brief</string>
+    <string name="aktion_was_heisst_das">Was heißt das für mich?</string>
+    <string name="aktion_was_tun">Was soll ich tun?</string>
+    <string name="aktion_brief_lesen">Brief jetzt lesen</string>
+    <string name="aktion_antwort">Antwort schreiben</string>
+    <string name="aktion_antwort_trotzdem">Antwort nicht nötig – trotzdem eine?</string>
+    <string name="antwort_beispiel_gesperrt">Lade zuerst deinen eigenen Brief hoch.</string>
+
+    <string name="fakt_wollen">WOLLEN</string>
+    <string name="fakt_ton">TON</string>
+    <string name="fakt_wenn_nichts">WENN NICHTS</string>
+    <string name="fakt_rat">MEIN RAT</string>
+    <string name="umschlag_titel">Brief doch selbst lesen</string>
+    <string name="umschlag_zu">%1$d Seiten · bleibt zu, bis du willst</string>
+    <string name="umschlag_offen">Wieder zuklappen</string>
+
+    <string name="frist_keine">keine Frist</string>
+    <string name="frist_nichts_zu_tun">nichts zu tun</string>
+    <string name="frist_unklar">Frist unklar</string>
+    <string name="frist_bis">bis %1$s</string>
+</resources>
