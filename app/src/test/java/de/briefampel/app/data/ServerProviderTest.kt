@@ -55,6 +55,7 @@ class ServerProviderTest {
         assertEquals("app-check", anfrage.getHeader("X-Firebase-AppCheck"))
         val body = JSONObject(anfrage.body.readUtf8())
         assertEquals("28.10.2026", body.getString("heute"))
+        assertEquals("de", body.getString("sprache"))
         assertEquals("AQID", body.getJSONArray("dateien").getJSONObject(0).getString("data"))
         // Der Server baut die Prompts; die App schickt keine.
         assertFalse(body.has("systemInstruction"))

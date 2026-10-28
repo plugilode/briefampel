@@ -26,8 +26,8 @@ android {
         applicationId = "de.briefampel.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 3
-        versionName = "0.3.0"
+        versionCode = 4
+        versionName = "0.4.0"
         buildConfigField("String", "AI_MODEL", "\"${einstellung("briefampel.model", "gemini-3.5-flash")}\"")
         buildConfigField("String", "AI_MODEL_FALLBACK", "\"${einstellung("briefampel.fallbackModel", "gemini-3.5-flash-lite")}\"")
         // Adresse des eigenen Servers (Firebase Functions), z. B. https://europe-west3-PROJEKT.cloudfunctions.net/api

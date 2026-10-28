@@ -59,6 +59,9 @@ data class UiState(
     /** Verlaufseintrag des gerade gezeigten Ergebnisses; Antworten werden dort abgelegt. */
     val eintragId: String? = null,
     val ausVerlauf: Boolean = false,
+    val sprache: Sprache = Sprache.DE,
+    /** Erster Start: Sprache wählen, bevor irgendetwas anderes kommt. */
+    val spracheWaehlen: Boolean = false,
     /** Store-Version: Guthaben und KI laufen über den eigenen Server, mit Google-Konto. */
     val serverModus: Boolean = false,
     val angemeldet: Boolean = false,
@@ -92,11 +95,14 @@ class BriefampelViewModel @JvmOverloads constructor(
         guthaben = store.guthaben,
         sperre = when { !zugang.aktiv -> Sperre.OFFEN; !zugang.eingerichtet -> Sperre.EINRICHTEN; else -> Sperre.GESPERRT },
         biometrie = zugang.biometrie,
-        serverModus = konto != null, angemeldet = konto?.angemeldet == true, email = konto?.email))
+        serverModus = konto != null, angemeldet = konto?.angemeldet == true, email = konto?.email,
+        sprache = Sprache.von(store.sprache) ?: Sprache.vomGeraet(), spracheWaehlen = store.sprache == null))
     val state = mutable.asStateFlow()
     private var work: Job? = null
     private var workSerial = 0
     private var cached: Triple<String, Long, LetterAnalysis>? = null
+    /** Meldungen entstehen auf Deutsch und werden in der gewählten Sprache gespeichert. */
+    private fun sagVm(de: String, vararg args: Any?) = state.value.sprache.text(de, *args)
     private var afterConsent = false
     /** Nach der Anmeldung direkt weiterprüfen, wenn die Anmeldung von „Prüfen“ kam. */
     private var nachAnmeldung = false
@@ -111,7 +117,7 @@ class BriefampelViewModel @JvmOverloads constructor(
         val geladen = try { withContext(ioDispatcher) { verlauf.lade() } } catch (cancel: CancellationException) { throw cancel } catch (_: Exception) { null }
         if (geladen == null) {
             ladenFehlgeschlagen = true
-            error("Der Verlauf konnte nicht geöffnet werden. Neue Einträge werden vorerst nicht gespeichert.")
+            error(tr("Der Verlauf konnte nicht geöffnet werden. Neue Einträge werden vorerst nicht gespeichert."))
         } else if (!verworfen) {
             // Einträge, die schon vor dem Laden entstanden sind, bleiben vorne erhalten.
             mutable.update { s -> s.copy(verlauf = s.verlauf + geladen.filter { g -> s.verlauf.none { it.id == g.id } }) }
@@ -121,8 +127,8 @@ class BriefampelViewModel @JvmOverloads constructor(
     // ---------------------------------------------------------------- Sperre
 
     fun pinEinrichten(pin: String) {
-        if (!istGueltigePin(pin)) { mutable.update { it.copy(pinMeldung = "Die PIN braucht genau 6 Ziffern.") }; return }
-        try { zugang.setzePin(pin) } catch (_: Exception) { mutable.update { it.copy(pinMeldung = "Die PIN konnte nicht gespeichert werden.") }; return }
+        if (!istGueltigePin(pin)) { mutable.update { it.copy(pinMeldung = sagVm("Die PIN braucht genau 6 Ziffern.")) }; return }
+        try { zugang.setzePin(pin) } catch (_: Exception) { mutable.update { it.copy(pinMeldung = sagVm("Die PIN konnte nicht gespeichert werden.")) }; return }
         mutable.update { it.copy(sperre = Sperre.OFFEN, pinMeldung = null) }
     }
 
@@ -131,8 +137,8 @@ class BriefampelViewModel @JvmOverloads constructor(
     fun pinPruefen(pin: String) {
         when (val ergebnis = zugang.pruefePin(pin)) {
             PinErgebnis.Richtig -> mutable.update { it.copy(sperre = Sperre.OFFEN, pinMeldung = null) }
-            is PinErgebnis.Falsch -> mutable.update { it.copy(pinMeldung = "Falsche PIN. Noch ${ergebnis.versucheBisPause} ${if (ergebnis.versucheBisPause == 1) "Versuch" else "Versuche"} bis zur Pause.") }
-            is PinErgebnis.Pause -> mutable.update { it.copy(pinMeldung = "Zu viele Versuche. Bitte ${ergebnis.sekunden} Sekunden warten.") }
+            is PinErgebnis.Falsch -> mutable.update { it.copy(pinMeldung = if (ergebnis.versucheBisPause == 1) sagVm("Falsche PIN. Noch 1 Versuch bis zur Pause.") else sagVm("Falsche PIN. Noch %d Versuche bis zur Pause.", ergebnis.versucheBisPause)) }
+            is PinErgebnis.Pause -> mutable.update { it.copy(pinMeldung = sagVm("Zu viele Versuche. Bitte %d Sekunden warten.", ergebnis.sekunden)) }
         }
     }
 
@@ -188,7 +194,7 @@ class BriefampelViewModel @JvmOverloads constructor(
             if (ladenFehlgeschlagen && !ersetzen) return@launch
             try { withContext(ioDispatcher) { verlauf.speichere(state.value.verlauf) } }
             catch (cancel: CancellationException) { throw cancel }
-            catch (_: Exception) { error("Der Verlauf konnte nicht gespeichert werden.") }
+            catch (_: Exception) { error(tr("Der Verlauf konnte nicht gespeichert werden.")) }
         }
     }
 
@@ -257,9 +263,9 @@ class BriefampelViewModel @JvmOverloads constructor(
         viewModelScope.launch {
             try {
                 val neu = k.kaufen(activity, produktId)
-                if (neu != null) mutable.update { it.copy(kaufMeldung = "Danke! Du hast jetzt ${Guthaben.analysenText(neu)}.") }
+                if (neu != null) mutable.update { it.copy(kaufMeldung = sagVm("Danke! Du hast jetzt %s.", it.sprache.analysen(neu))) }
             } catch (cancel: CancellationException) { throw cancel }
-            catch (e: Exception) { mutable.update { it.copy(kaufMeldung = errorMessage(e)) } }
+            catch (e: Exception) { mutable.update { it.copy(kaufMeldung = sagVm(errorMessage(e))) } }
             finally { mutable.update { it.copy(kaufLaeuft = false) } }
         }
     }
@@ -274,7 +280,15 @@ class BriefampelViewModel @JvmOverloads constructor(
     }
 
     fun sheet(sheet: Sheet?) { mutable.update { it.copy(sheet = sheet, error = null, kaufMeldung = null) }; if (sheet == null) { afterConsent = false; nachAnmeldung = false } }
-    fun error(text: String) { mutable.update { it.copy(error = text) } }
+    fun error(text: String) { mutable.update { it.copy(error = it.sprache.text(text)) } }
+
+    fun spracheGewaehlt(sprache: Sprache) { store.sprache = sprache.code; mutable.update { it.copy(sprache = sprache, spracheWaehlen = false) } }
+    fun sprache(sprache: Sprache) {
+        store.sprache = sprache.code
+        // Die nächste Prüfung soll in der neuen Sprache zusammenfassen, nicht aus dem Zwischenspeicher kommen.
+        cached = null
+        mutable.update { it.copy(sprache = sprache) }
+    }
     fun clearError() { mutable.update { it.copy(error = null) } }
     fun finishIntro() { store.introSeen = true; mutable.update { it.copy(showIntro = false) } }
     /** Antworten, die zum aktuellen Brief noch ohne neue Analyse gehen; null ohne Verlaufseintrag. */
@@ -307,9 +321,9 @@ class BriefampelViewModel @JvmOverloads constructor(
                 afterConsent = false
                 store.consent = false
                 mutable.update { it.copy(configured = isConfigured(), personalApi = personalApi.configured, consent = false,
-                    apiMessage = if (personalApi.configured) "Schlüssel gespeichert. Die Verbindung wird bei der nächsten Prüfung getestet." else "Persönlicher Schlüssel gelöscht.") }
+                    apiMessage = if (personalApi.configured) sagVm("Schlüssel gespeichert. Die Verbindung wird bei der nächsten Prüfung getestet.") else sagVm("Persönlicher Schlüssel gelöscht.")) }
             } catch (cancel: CancellationException) { throw cancel }
-            catch (_: Exception) { mutable.update { it.copy(apiMessage = "Schlüssel konnte nicht geändert werden. Bitte Eingabe und Gerätespeicher prüfen.") } }
+            catch (_: Exception) { mutable.update { it.copy(apiMessage = sagVm("Schlüssel konnte nicht geändert werden. Bitte Eingabe und Gerätespeicher prüfen.")) } }
             finally { mutable.update { it.copy(configuringApi = false) } }
         }
     }
@@ -321,11 +335,11 @@ class BriefampelViewModel @JvmOverloads constructor(
 
     /** @param sofortPruefen nach dem Scannen oder Auswählen direkt prüfen: Brief rein, Ampel raus, ohne Extra-Tippen. */
     fun import(uris: List<Uri>, sharedText: String? = null, sofortPruefen: Boolean = false) {
-        if (state.value.loading || state.value.writing || state.value.importing) { error("Bitte den laufenden Vorgang zuerst beenden."); return }
+        if (state.value.loading || state.value.writing || state.value.importing) { error(tr("Bitte den laufenden Vorgang zuerst beenden.")); return }
         mutable.update { it.copy(importing = true, error = null, screen = Screen.INPUT, sheet = null, result = null, example = false, reply = "", showIntro = false) }
         viewModelScope.launch {
             try {
-                require(uris.size <= 12) { "Zu viele Dateien. Höchstens 12 Seiten auswählen." }
+                require(uris.size <= 12) { tr("Zu viele Dateien. Höchstens 12 Seiten auswählen.") }
                 val read = uris.map { inputReader.read(it) }
                 val input = state.value.input.let { old ->
                     LetterInput(sharedText?.take(60_001) ?: old.text, (old.attachments + read).distinctBy { it.id })
@@ -341,7 +355,7 @@ class BriefampelViewModel @JvmOverloads constructor(
 
     fun example(ampel: Ampel) {
         // Relativ zu heute, damit die Beispielfrist nie in der Vergangenheit liegt.
-        mutable.update { it.copy(screen = Screen.RESULT, result = Beispiele.fuer(ampel, today()), example = true, error = null, sheet = null, showIntro = false) }
+        mutable.update { it.copy(screen = Screen.RESULT, result = Beispiele.fuer(ampel, today(), it.sprache), example = true, error = null, sheet = null, showIntro = false) }
     }
 
     fun analyze() {
@@ -351,7 +365,7 @@ class BriefampelViewModel @JvmOverloads constructor(
         if (!store.consent) { afterConsent = true; mutable.update { it.copy(sheet = Sheet.CONSENT) }; return }
         val input = state.value.input
         val day = today()
-        val cache = cached?.takeIf { it.first == input.fingerprint() && SystemClock.elapsedRealtime() - it.second < 300_000 }
+        val cache = cached?.takeIf { it.first == input.fingerprint() + state.value.sprache.code && SystemClock.elapsedRealtime() - it.second < 300_000 }
         if (cache != null) { showAnalysis(cache.third, input); return }
         if (konto != null && !konto.angemeldet) { nachAnmeldung = true; mutable.update { it.copy(sheet = Sheet.ANMELDEN, error = null) }; return }
         if (store.guthaben <= 0) { mutable.update { it.copy(sheet = Sheet.PAKETE, error = null) }; return }
@@ -359,9 +373,10 @@ class BriefampelViewModel @JvmOverloads constructor(
         val serial = ++workSerial
         work = viewModelScope.launch {
             try {
-                val analysis = provider.analyze(input, day)
+                val sprache = state.value.sprache
+                val analysis = provider.analyze(input, day, sprache)
                 if (serial != workSerial) return@launch
-                cached = Triple(input.fingerprint(), SystemClock.elapsedRealtime(), analysis)
+                cached = Triple(input.fingerprint() + sprache.code, SystemClock.elapsedRealtime(), analysis)
                 if (konto == null) store.guthaben = store.guthaben - 1
                 showAnalysis(analysis, input)
             } catch (cancel: CancellationException) { throw cancel }
@@ -392,17 +407,17 @@ class BriefampelViewModel @JvmOverloads constructor(
     }
 
     fun openReply() {
-        if (state.value.example) { error("Lade zuerst deinen eigenen Brief hoch."); return }
+        if (state.value.example) { error(tr("Lade zuerst deinen eigenen Brief hoch.")); return }
         mutable.update { it.copy(screen = Screen.REPLY, error = null) }
     }
 
     fun write() {
         val s = state.value
         if (s.writing || s.example || s.result == null) return
-        if (s.keywords.isBlank()) { error("Ein paar Stichworte brauche ich."); return }
-        if (!s.consent) { error("Bitte stimme in den Einstellungen zuerst der KI-Verarbeitung zu."); return }
+        if (s.keywords.isBlank()) { error(tr("Ein paar Stichworte brauche ich.")); return }
+        if (!s.consent) { error(tr("Bitte stimme in den Einstellungen zuerst der KI-Verarbeitung zu.")); return }
         if (freieAntworten(s) == 0 && store.guthaben <= 0) {
-            mutable.update { it.copy(sheet = Sheet.PAKETE, error = "Die 3 Antworten zu diesem Brief sind verbraucht. Für weitere brauchst du eine neue Analyse.") }
+            mutable.update { it.copy(sheet = Sheet.PAKETE, error = it.sprache.text("Die 3 Antworten zu diesem Brief sind verbraucht. Für weitere brauchst du eine neue Analyse.")) }
             return
         }
         mutable.update { it.copy(writing = true, reply = "", error = null) }

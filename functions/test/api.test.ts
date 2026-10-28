@@ -157,4 +157,11 @@ describe("Regeln", () => {
     expect(w.contents[0].parts[0].text).toContain("Ton: Scharf");
     expect(w.contents[0].parts[0].text).toContain("[Name]");
   });
+
+  it("fasst in der gewählten Sprache zusammen und lehnt unbekannte Sprachen ab", () => {
+    expect((analyseAnfrage(pruefeBrief(brief)) as any).systemInstruction.parts[0].text).toContain("ruhiger deutscher Sprache");
+    const es = analyseAnfrage(pruefeBrief({ ...brief, sprache: "es" })) as any;
+    expect(es.systemInstruction.parts[0].text).toContain("auf Spanisch");
+    expect(() => pruefeBrief({ ...brief, sprache: "fr" })).toThrow("Unbekannte Sprache.");
+  });
 });

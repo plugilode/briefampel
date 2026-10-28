@@ -1,5 +1,6 @@
 package de.briefampel.app.data
 
+import de.briefampel.app.domain.tr
 import android.content.Context
 import com.google.firebase.FirebaseApp
 import com.google.firebase.appcheck.FirebaseAppCheck
@@ -30,8 +31,8 @@ interface ServerZugang {
     fun abmelden()
 }
 
-class GuthabenLeer : Exception("Dein Guthaben ist aufgebraucht.")
-class AnmeldungNoetig : Exception("Bitte einmal mit Google anmelden.")
+class GuthabenLeer : Exception(tr("Dein Guthaben ist aufgebraucht."))
+class AnmeldungNoetig : Exception(tr("Bitte einmal mit Google anmelden."))
 
 /** Fehler, die der Server mit einem lesbaren Text zurückgibt. */
 class ServerFehler(val status: Int, text: String) : Exception(text)

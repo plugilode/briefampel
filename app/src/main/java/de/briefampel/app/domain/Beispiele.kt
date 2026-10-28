@@ -8,35 +8,36 @@ import java.time.LocalDate
  */
 object Beispiele {
 
-    fun fuer(ampel: Ampel, heute: LocalDate): GepruefterBrief = when (ampel) {
-        Ampel.ROT -> mahnung(heute)
-        Ampel.GELB -> finanzamt(heute)
-        Ampel.GRUEN -> buergeramt(heute)
+    /** Der Originalbrief bleibt deutsch, die Auswertung kommt in der gewählten Sprache – wie im echten Einsatz. */
+    fun fuer(ampel: Ampel, heute: LocalDate, sprache: Sprache = Sprache.DE): GepruefterBrief = when (ampel) {
+        Ampel.ROT -> mahnung(heute, sprache)
+        Ampel.GELB -> finanzamt(heute, sprache)
+        Ampel.GRUEN -> buergeramt(heute, sprache)
     }
 
-    private fun mahnung(heute: LocalDate): GepruefterBrief {
+    private fun mahnung(heute: LocalDate, sp: Sprache): GepruefterBrief {
         val datum = heute.minusDays(11)
         val frist = heute.plusDays(3)
         return GepruefterBrief(
             analyse = LetterAnalysis(
                 ampel = Ampel.ROT,
-                titel = "Mahnung mit Klageandrohung",
+                titel = sp.text("Mahnung mit Klageandrohung"),
                 absender = "Inkasso Nordwest GmbH",
                 datum = datum,
                 aktenzeichen = "INK-55821/26",
-                kurz = "Ein Inkassobüro will 312,40 € für eine angeblich offene Handyrechnung und droht mit dem gerichtlichen Mahnverfahren.",
-                verlangt = "312,40 € – davon 189,90 € Hauptforderung, der Rest Inkassokosten und Zinsen.",
-                frist = Frist(frist, "Zahlungsfrist aus dem Schreiben, keine gesetzliche Frist. Trotzdem nicht verstreichen lassen."),
-                ton = "drohend",
-                tonnotiz = "„Letzte Aufforderung“, Hinweis auf die SCHUFA.",
-                risiko = "Wahrscheinlich kommt ein Mahnbescheid. Die Inkassokosten wirken überhöht.",
+                kurz = sp.text("Ein Inkassobüro will 312,40 € für eine angeblich offene Handyrechnung und droht mit dem gerichtlichen Mahnverfahren."),
+                verlangt = sp.text("312,40 € – davon 189,90 € Hauptforderung, der Rest Inkassokosten und Zinsen."),
+                frist = Frist(frist, sp.text("Zahlungsfrist aus dem Schreiben, keine gesetzliche Frist. Trotzdem nicht verstreichen lassen.")),
+                ton = sp.text("drohend"),
+                tonnotiz = sp.text("„Letzte Aufforderung“, Hinweis auf die SCHUFA."),
+                risiko = sp.text("Wahrscheinlich kommt ein Mahnbescheid. Die Inkassokosten wirken überhöht."),
                 antwortNoetig = true,
-                empfehlung = "Forderung bestreiten und Vertrag plus Rechnung als Nachweis verlangen.",
+                empfehlung = sp.text("Forderung bestreiten und Vertrag plus Rechnung als Nachweis verlangen."),
                 stichwortVorschlaege = listOf(
-                    "Forderung bestreiten",
-                    "Vertrag und Rechnung anfordern",
-                    "Inkassokosten zurückweisen",
-                    "SCHUFA-Eintrag widersprechen",
+                    sp.text("Forderung bestreiten"),
+                    sp.text("Vertrag und Rechnung anfordern"),
+                    sp.text("Inkassokosten zurückweisen"),
+                    sp.text("SCHUFA-Eintrag widersprechen"),
                 ),
                 sprache = "de",
             ),
@@ -65,28 +66,28 @@ object Beispiele {
         )
     }
 
-    private fun finanzamt(heute: LocalDate): GepruefterBrief {
+    private fun finanzamt(heute: LocalDate, sp: Sprache): GepruefterBrief {
         val datum = heute.minusDays(4)
         val frist = heute.plusDays(18)
         return GepruefterBrief(
             analyse = LetterAnalysis(
                 ampel = Ampel.GELB,
-                titel = "Rückfrage zur Steuererklärung 2025",
+                titel = sp.text("Rückfrage zur Steuererklärung 2025"),
                 absender = "Finanzamt Köln-Altstadt",
                 datum = datum,
                 aktenzeichen = "214/5873/0912",
-                kurz = "Das Finanzamt möchte zwei Belege zu deinen Werbungskosten sehen. Kein Vorwurf, nur eine Nachfrage.",
-                verlangt = "Nachweis der Fahrtkosten und die Rechnung für den Laptop (1.249,00 €).",
-                frist = Frist(frist, "Frist steht im Schreiben."),
-                ton = "neutral",
-                tonnotiz = "Sachlich und freundlich formuliert.",
-                risiko = "Ohne Belege werden die Kosten vermutlich nicht anerkannt.",
+                kurz = sp.text("Das Finanzamt möchte zwei Belege zu deinen Werbungskosten sehen. Kein Vorwurf, nur eine Nachfrage."),
+                verlangt = sp.text("Nachweis der Fahrtkosten und die Rechnung für den Laptop (1.249,00 €)."),
+                frist = Frist(frist, sp.text("Frist steht im Schreiben.")),
+                ton = sp.text("neutral"),
+                tonnotiz = sp.text("Sachlich und freundlich formuliert."),
+                risiko = sp.text("Ohne Belege werden die Kosten vermutlich nicht anerkannt."),
                 antwortNoetig = true,
-                empfehlung = "Belege fotografieren, kurz anschreiben, fertig.",
+                empfehlung = sp.text("Belege fotografieren, kurz anschreiben, fertig."),
                 stichwortVorschlaege = listOf(
-                    "Belege liegen bei",
-                    "Fahrtkosten erläutern",
-                    "Laptop beruflich genutzt",
+                    sp.text("Belege liegen bei"),
+                    sp.text("Fahrtkosten erläutern"),
+                    sp.text("Laptop beruflich genutzt"),
                 ),
                 sprache = "de",
             ),
@@ -113,25 +114,25 @@ object Beispiele {
         )
     }
 
-    private fun buergeramt(heute: LocalDate): GepruefterBrief {
+    private fun buergeramt(heute: LocalDate, sp: Sprache): GepruefterBrief {
         val datum = heute.minusDays(3)
         val termin = heute.plusDays(10)
         return GepruefterBrief(
             analyse = LetterAnalysis(
                 ampel = Ampel.GRUEN,
-                titel = "Terminbestätigung Personalausweis",
+                titel = sp.text("Terminbestätigung Personalausweis"),
                 absender = "Stadt Köln · Bürgeramt Innenstadt",
                 datum = datum,
                 aktenzeichen = null,
-                kurz = "Dein Termin am ${Fristen.format(termin)} um 09:40 Uhr ist bestätigt. Altes Dokument und ein biometrisches Foto mitbringen.",
+                kurz = sp.text("Dein Termin am %s um 09:40 Uhr ist bestätigt. Altes Dokument und ein biometrisches Foto mitbringen.", Fristen.format(termin)),
                 verlangt = null,
                 frist = null,
-                ton = "freundlich",
-                tonnotiz = "Reine Information.",
-                risiko = "Keins. Wer den Termin nicht schafft, sagt ihn einfach ab.",
+                ton = sp.text("freundlich"),
+                tonnotiz = sp.text("Reine Information."),
+                risiko = sp.text("Keins. Wer den Termin nicht schafft, sagt ihn einfach ab."),
                 antwortNoetig = false,
-                empfehlung = "Termin vormerken und hingehen.",
-                stichwortVorschlaege = listOf("Termin absagen", "Termin verschieben"),
+                empfehlung = sp.text("Termin vormerken und hingehen."),
+                stichwortVorschlaege = listOf(sp.text("Termin absagen"), sp.text("Termin verschieben")),
                 sprache = "de",
             ),
             volltext = """

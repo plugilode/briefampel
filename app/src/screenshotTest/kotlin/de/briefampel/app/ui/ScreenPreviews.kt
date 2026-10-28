@@ -64,7 +64,7 @@ private fun Capture(state: UiState, bottom: Boolean = false, sheetBottom: Boolea
     val context = LocalContext.current
     val model = remember(context) {
         BriefampelViewModel(PreviewApplication(context), object : LlmProvider {
-            override suspend fun analyze(input: LetterInput, today: LocalDate): LetterAnalysis = error("No network in screenshots")
+            override suspend fun analyze(input: LetterInput, today: LocalDate, sprache: Sprache): LetterAnalysis = error("No network in screenshots")
             override fun draft(input: LetterInput, analysis: LetterAnalysis, keywords: String, tone: Tone, sender: Sender, today: LocalDate) = emptyFlow<String>()
         }, false, object : PersonalApi {
             override val supported = true
@@ -166,13 +166,13 @@ private object PreviewPreferences : SharedPreferences {
     override fun unregisterOnSharedPreferenceChangeListener(listener: SharedPreferences.OnSharedPreferenceChangeListener?) = Unit
 }
 
-private fun verlaufBeispiel(): List<de.briefampel.app.data.VerlaufEintrag> {
+private fun verlaufBeispiel(sp: Sprache = Sprache.DE): List<de.briefampel.app.data.VerlaufEintrag> {
     val jetzt = System.currentTimeMillis()
     return listOf(
-        de.briefampel.app.data.VerlaufEintrag("rot", jetzt - 3_600_000, Beispiele.fuer(Ampel.ROT, today()).analyse, 3,
+        de.briefampel.app.data.VerlaufEintrag("rot", jetzt - 3_600_000, Beispiele.fuer(Ampel.ROT, today(), sp).analyse, 3,
             listOf(de.briefampel.app.data.GespeicherteAntwort("Erika Muster\nMusterstraße 12\n50667 Köln\n\nInkasso Nordwest GmbH\n\nSehr geehrte Damen und Herren,\n\ndie von Ihnen geltend gemachte Forderung bestreite ich.", "Sachlich", jetzt - 3_000_000))),
-        de.briefampel.app.data.VerlaufEintrag("gelb", jetzt - 86_400_000 * 3, Beispiele.fuer(Ampel.GELB, today()).analyse, 1),
-        de.briefampel.app.data.VerlaufEintrag("gruen", jetzt - 86_400_000 * 9, Beispiele.fuer(Ampel.GRUEN, today()).analyse, 1),
+        de.briefampel.app.data.VerlaufEintrag("gelb", jetzt - 86_400_000 * 3, Beispiele.fuer(Ampel.GELB, today(), sp).analyse, 1),
+        de.briefampel.app.data.VerlaufEintrag("gruen", jetzt - 86_400_000 * 9, Beispiele.fuer(Ampel.GRUEN, today(), sp).analyse, 1),
     )
 }
 
@@ -228,3 +228,21 @@ private fun verlaufBeispiel(): List<de.briefampel.app.data.VerlaufEintrag> {
 
 @PreviewTest @Preview(name = "42_Einstellungen_Konto", widthDp = 412, heightDp = 915, locale = "de", showSystemUi = true)
 @Composable fun EinstellungenKontoScreenshot() = Capture(base().copy(sheet = Sheet.SETTINGS, serverModus = true, configured = true, angemeldet = true, email = "ana@example.com"))
+
+@PreviewTest @Preview(name = "50_Sprachwahl", widthDp = 412, heightDp = 915, locale = "de", showSystemUi = true)
+@Composable fun SprachwahlScreenshot() = Capture(base().copy(spracheWaehlen = true, sprache = Sprache.ES))
+
+@PreviewTest @Preview(name = "51_Start_EN", widthDp = 412, heightDp = 915, locale = "en", showSystemUi = true)
+@Composable fun StartEnglischScreenshot() = Capture(base().copy(sprache = Sprache.EN, verlauf = verlaufBeispiel(Sprache.EN), configured = true, personalApi = true))
+
+@PreviewTest @Preview(name = "52_Ergebnis_Rot_ES", widthDp = 412, heightDp = 915, locale = "es", showSystemUi = true)
+@Composable fun ErgebnisSpanischScreenshot() = Capture(base().copy(sprache = Sprache.ES, screen = Screen.RESULT, result = Beispiele.fuer(Ampel.ROT, today(), Sprache.ES), example = true))
+
+@PreviewTest @Preview(name = "53_Ergebnis_Gelb_EN_unten", widthDp = 412, heightDp = 915, locale = "en", showSystemUi = true)
+@Composable fun ErgebnisEnglischUntenScreenshot() = Capture(base().copy(sprache = Sprache.EN, screen = Screen.RESULT, result = Beispiele.fuer(Ampel.GELB, today(), Sprache.EN), example = true), bottom = true)
+
+@PreviewTest @Preview(name = "54_Einstellungen_ES", widthDp = 412, heightDp = 915, locale = "es", showSystemUi = true)
+@Composable fun EinstellungenSpanischScreenshot() = Capture(base().copy(sprache = Sprache.ES, sheet = Sheet.SETTINGS))
+
+@PreviewTest @Preview(name = "55_Antwort_ES", widthDp = 412, heightDp = 915, locale = "es", showSystemUi = true)
+@Composable fun AntwortSpanischScreenshot() = Capture(base().copy(sprache = Sprache.ES, screen = Screen.REPLY, result = Beispiele.fuer(Ampel.ROT, today(), Sprache.ES), input = LetterInput("Carta"), consent = true))

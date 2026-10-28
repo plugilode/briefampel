@@ -32,7 +32,7 @@ class KontoTest {
     @Before fun setup() {
         Dispatchers.setMain(dispatcher)
         app = RuntimeEnvironment.getApplication()
-        app.getSharedPreferences("briefampel_private", Context.MODE_PRIVATE).edit().clear().commit()
+        app.getSharedPreferences("briefampel_private", Context.MODE_PRIVATE).edit().clear().putString("sprache", "de").commit()
         konto = FakeKonto()
         fake = FakeProvider()
         model = BriefampelViewModel(app, fake, zugang = OffenerZugang, verlauf = FluechtigerVerlauf(), konto = konto)
@@ -72,7 +72,7 @@ class KontoTest {
     @Test fun `leeres Server-Guthaben oeffnet die Pakete, Kauf meldet neuen Stand`() = runTest(dispatcher) {
         konto.angemeldet = true
         val leer = object : LlmProvider by fake {
-            override suspend fun analyze(input: LetterInput, today: LocalDate): LetterAnalysis = throw GuthabenLeer()
+            override suspend fun analyze(input: LetterInput, today: LocalDate, sprache: Sprache): LetterAnalysis = throw GuthabenLeer()
         }
         model = BriefampelViewModel(app, leer, zugang = OffenerZugang, verlauf = FluechtigerVerlauf(), konto = konto)
         model.setText("Mein Brief")
@@ -88,7 +88,7 @@ class KontoTest {
     @Test fun `abgelaufene Anmeldung fuehrt zurueck zum Anmelden`() = runTest(dispatcher) {
         konto.angemeldet = true
         val abgelaufen = object : LlmProvider by fake {
-            override suspend fun analyze(input: LetterInput, today: LocalDate): LetterAnalysis = throw AnmeldungNoetig()
+            override suspend fun analyze(input: LetterInput, today: LocalDate, sprache: Sprache): LetterAnalysis = throw AnmeldungNoetig()
         }
         model = BriefampelViewModel(app, abgelaufen, zugang = OffenerZugang, verlauf = FluechtigerVerlauf(), konto = konto)
         model.setText("Mein Brief")

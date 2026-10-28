@@ -25,14 +25,14 @@ object Fristen {
     fun istDringend(datum: LocalDate?, heute: LocalDate): Boolean =
         datum != null && tageBis(datum, heute) < DRINGEND_AB_TAGEN
 
-    fun restText(datum: LocalDate, heute: LocalDate): String {
+    fun restText(datum: LocalDate, heute: LocalDate, sprache: Sprache = Sprache.DE): String {
         val tage = tageBis(datum, heute)
         return when {
-            tage < -1 -> "seit ${-tage} Tagen vorbei"
-            tage == -1L -> "seit gestern vorbei"
-            tage == 0L -> "heute fällig"
-            tage == 1L -> "noch 1 Tag"
-            else -> "noch $tage Tage"
+            tage < -1 -> sprache.text("seit %d Tagen vorbei", -tage)
+            tage == -1L -> sprache.text("seit gestern vorbei")
+            tage == 0L -> sprache.text("heute fällig")
+            tage == 1L -> sprache.text("noch 1 Tag")
+            else -> sprache.text("noch %d Tage", tage)
         }
     }
 }

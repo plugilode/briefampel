@@ -28,7 +28,7 @@ class BriefampelUiTest {
     @get:Rule val compose = createComposeRule()
 
     @Before fun setup() {
-        RuntimeEnvironment.getApplication().getSharedPreferences("briefampel_private", Context.MODE_PRIVATE).edit().clear().commit()
+        RuntimeEnvironment.getApplication().getSharedPreferences("briefampel_private", Context.MODE_PRIVATE).edit().clear().putString("sprache", "de").commit()
     }
 
     @Test fun `own text import stays local and configuration is clearly disclosed`() {
