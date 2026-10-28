@@ -1,8 +1,17 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     id("com.android.compose.screenshot")
 }
+
+// Persönliche Testeinstellungen aus local.properties (nicht in Git).
+val lokal = Properties().apply {
+    rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
+}
+fun einstellung(name: String, standard: String): String =
+    providers.gradleProperty(name).orNull ?: lokal.getProperty(name)?.trim()?.takeIf { it.isNotEmpty() } ?: standard
 
 android {
     experimentalProperties["android.experimental.enableScreenshotTest"] = true
@@ -16,12 +25,18 @@ android {
         targetSdk = 36
         versionCode = 3
         versionName = "0.3.0"
-        buildConfigField("String", "AI_MODEL", "\"${providers.gradleProperty("briefampel.model").getOrElse("gemini-3.8-flash")}\"")
-        buildConfigField("String", "AI_REGION", "\"${providers.gradleProperty("briefampel.region").getOrElse("eu")}\"")
+        buildConfigField("String", "AI_MODEL", "\"${einstellung("briefampel.model", "gemini-3.5-flash")}\"")
+        buildConfigField("String", "AI_REGION", "\"${einstellung("briefampel.region", "eu")}\"")
     }
 
     buildTypes {
+        debug {
+            // Nur für die eigene Test-APK: ein Schlüssel aus local.properties wird beim ersten Start übernommen.
+            buildConfigField("String", "TEST_GEMINI_KEY", "\"${einstellung("briefampel.geminiKey", "")}\"")
+        }
         release {
+            // Niemals einen Schlüssel in eine Version für andere Nutzer einbauen.
+            buildConfigField("String", "TEST_GEMINI_KEY", "\"\"")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")

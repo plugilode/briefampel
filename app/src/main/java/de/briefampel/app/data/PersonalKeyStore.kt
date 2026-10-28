@@ -4,6 +4,7 @@ import android.content.Context
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
+import de.briefampel.app.BuildConfig
 import java.security.KeyStore
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
@@ -17,6 +18,20 @@ internal class PersonalKeyStore(context: Context) : PersonalApi {
     override val supported = true
     override val configured get() = !read().isNullOrBlank()
     val stored get() = prefs.contains("encrypted")
+
+    init {
+        // Test-APK: einen mitgebauten Schlüssel einmalig verschlüsselt übernehmen.
+        // Danach gilt nur noch der gespeicherte; „API-Schlüssel löschen“ bleibt dauerhaft wirksam.
+        val mitgebaut = BuildConfig.TEST_GEMINI_KEY
+        if (mitgebaut.isNotBlank() && !prefs.getBoolean("testschluessel_uebernommen", false)) {
+            try {
+                if (!stored) save(mitgebaut)
+                prefs.edit().putBoolean("testschluessel_uebernommen", true).apply()
+            } catch (_: Exception) {
+                // Ohne Keystore (z. B. in Unit-Tests) bleibt die App unkonfiguriert.
+            }
+        }
+    }
 
     fun read(): String? {
         val encrypted = prefs.getString("encrypted", null) ?: return null

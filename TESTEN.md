@@ -34,8 +34,8 @@ SHA-256: `5c3826f0151ec1ebd8a3dc4e8916bec119f82912062edbbdd8689a4254050309`
 
 ## 3. Mit echter KI testen (eigener Gemini-Schlüssel)
 
-1. In Google AI Studio einen API-Schlüssel erstellen: https://aistudio.google.com/apikey
-2. In der App: **Einstellungen** (Figur-Symbol oben rechts) → **Gemini-API-Schlüssel** → einfügen → **Schlüssel speichern**.
+1. Der Schlüssel aus `local.properties` (`briefampel.geminiKey=…`) ist in der Test-APK schon eingebaut und wird beim ersten Start übernommen. Nichts eintippen nötig.
+2. Anderen Schlüssel nutzen: **Einstellungen** (Personen-Symbol oben rechts) → **Gemini-API-Schlüssel** → einfügen → **Schlüssel speichern**.
 3. Einen eigenen Testbrief laden und **Ampel prüfen**. Vor dem ersten Aufruf erscheint die Einwilligung.
 4. Danach: **Antwort schreiben**, Stichworte wählen, Ton wählen, schreiben lassen, **Stopp** testen, **Kopieren** und **Teilen**.
 
@@ -43,7 +43,7 @@ Wichtig:
 - Zum Start erfundene oder geschwärzte Briefe verwenden, keine echten persönlichen Daten.
 - Mit einem kostenlosen Schlüssel kann Google die Inhalte zur Produktverbesserung verwenden. Für echte Briefe ein Projekt mit Abrechnung nutzen und die Gemini-Bedingungen prüfen.
 - Der Schlüssel bleibt verschlüsselt auf dem Handy. Nicht in Chats oder ins Repository schreiben.
-- Das Modell ist auf `gemini-3.8-flash` voreingestellt. Ob dein Projekt Zugriff darauf hat, zeigt erst der erste echte Aufruf. Bei einem Fehler: Modell beim Bauen mit `-Pbriefampel.model=…` ändern.
+- Das Modell ist auf `gemini-3.5-flash` voreingestellt. Ob dein Projekt Zugriff darauf hat, zeigt erst der erste echte Aufruf. Bei einem Fehler: Modell beim Bauen mit `-Pbriefampel.model=…` ändern.
 
 ## 4. Was noch nicht geprüft ist
 
