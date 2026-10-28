@@ -154,9 +154,9 @@ internal fun Feld(
 @Composable
 internal fun SenderFields(sender: Sender, change: (Sender) -> Unit, enabled: Boolean = true) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Feld(sender.name, { change(sender.copy(name = it.take(200))) }, "Name", enabled = enabled, singleLine = true)
-        Feld(sender.address, { change(sender.copy(address = it.take(500))) }, "Anschrift", enabled = enabled, minLines = 2)
-        Feld(sender.email, { change(sender.copy(email = it.take(200))) }, "E-Mail (optional)", enabled = enabled, singleLine = true)
+        Feld(sender.name, { change(sender.copy(name = it.take(200))) }, sag("Name"), enabled = enabled, singleLine = true)
+        Feld(sender.address, { change(sender.copy(address = it.take(500))) }, sag("Anschrift"), enabled = enabled, minLines = 2)
+        Feld(sender.email, { change(sender.copy(email = it.take(200))) }, sag("E-Mail (optional)"), enabled = enabled, singleLine = true)
     }
 }
 

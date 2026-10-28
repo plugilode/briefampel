@@ -25,7 +25,7 @@ class SperreUndVerlaufTest {
     @Before fun setup() {
         Dispatchers.setMain(dispatcher)
         app = RuntimeEnvironment.getApplication()
-        listOf("briefampel_private", "briefampel_zugang").forEach { app.getSharedPreferences(it, Context.MODE_PRIVATE).edit().clear().commit() }
+        listOf("briefampel_private", "briefampel_zugang").forEach { app.getSharedPreferences(it, Context.MODE_PRIVATE).edit().clear().putString("sprache", "de").commit() }
         fake = FakeProvider()
     }
     @After fun cleanup() { Dispatchers.resetMain() }

@@ -25,12 +25,12 @@ internal class ServerProvider(private val server: FirebaseServer) : LlmProvider 
     /** Analyse-ID pro Ergebnis, damit der Server Antworten der richtigen Analyse zuordnet. */
     private val analyseIds = ConcurrentHashMap<LetterAnalysis, String>()
 
-    override suspend fun analyze(input: LetterInput, today: LocalDate): LetterAnalysis {
-        val anfrage = server.anfrage("/pruefen", server.koepfe(), brief(input, today))
+    override suspend fun analyze(input: LetterInput, today: LocalDate, sprache: Sprache): LetterAnalysis {
+        val anfrage = server.anfrage("/pruefen", server.koepfe(), brief(input, today).put("sprache", sprache.code))
         val roh = ausfuehren(anfrage)
         val antwort = JSONObject(roh)
         DirectGeminiProvider.checkFinish(antwort)
-        val analyse = AnalysisJson.parse(DirectGeminiProvider.responseText(antwort).ifBlank { error("Keine lesbare Analyse erhalten. Bitte nochmal versuchen.") })
+        val analyse = AnalysisJson.parse(DirectGeminiProvider.responseText(antwort).ifBlank { error(tr("Keine lesbare Analyse erhalten. Bitte nochmal versuchen.")) })
         antwort.optJSONObject("briefampel")?.let { b ->
             analyseIds[analyse] = b.getString("analyseId")
             server.guthabenStrom.value = b.optInt("guthaben")
@@ -86,7 +86,7 @@ internal class ServerProvider(private val server: FirebaseServer) : LlmProvider 
                     response.use { r ->
                         val text = r.body?.string()
                         server.pruefeAntwort(r.code, text)
-                        if (fortsetzung.isActive) fortsetzung.resume(text ?: error("Keine Antwort erhalten. Bitte nochmal versuchen."))
+                        if (fortsetzung.isActive) fortsetzung.resume(text ?: error(tr("Keine Antwort erhalten. Bitte nochmal versuchen.")))
                     }
                 } catch (e: Exception) { if (fortsetzung.isActive) fortsetzung.resumeWithException(e) }
             }

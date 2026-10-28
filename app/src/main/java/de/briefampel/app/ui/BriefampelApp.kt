@@ -118,9 +118,9 @@ fun BriefampelApp(model: BriefampelViewModel) {
                 override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) = model.entsperrt()
             }).authenticate(
                 BiometricPrompt.PromptInfo.Builder()
-                    .setTitle("Briefampel entsperren")
-                    .setSubtitle("Mit Fingerabdruck oder Gesicht")
-                    .setNegativeButtonText("PIN eingeben")
+                    .setTitle(state.sprache.text("Briefampel entsperren"))
+                    .setSubtitle(state.sprache.text("Mit Fingerabdruck oder Gesicht"))
+                    .setNegativeButtonText(state.sprache.text("PIN eingeben"))
                     .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_WEAK)
                     .build(),
             )
@@ -130,10 +130,10 @@ fun BriefampelApp(model: BriefampelViewModel) {
             file = { files.launch(arrayOf("application/pdf", "image/png", "image/jpeg", "image/webp")) },
             copy = { text ->
                 context.getSystemService(ClipboardManager::class.java).setPrimaryClip(ClipData.newPlainText("Antwortbrief", text))
-                scope.launch { snackbar.showSnackbar("Antwort kopiert") }
+                scope.launch { snackbar.showSnackbar(state.sprache.text("Antwort kopiert")) }
             },
             share = { text ->
-                context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, text) }, "Antwort teilen"))
+                context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, text) }, state.sprache.text("Antwort teilen")))
             },
             biometrie = biometrie,
         )
@@ -172,6 +172,7 @@ internal fun BriefampelLayout(
     if (ergebnis != null) letzteAmpel = ergebnis
     val schein by animateFloatAsState(if (ergebnis != null) 1f else 0f, tween(1400, easing = Bewegung.Ruhig), label = "Schein")
 
+    CompositionLocalProvider(LocalSprache provides state.sprache) {
     Box(Modifier.fillMaxSize().background(c.grund)) {
         // Der Farbschein der leuchtenden Lampe färbt den Raum ganz leicht ein.
         if (schein > 0f) Canvas(Modifier.fillMaxSize()) {
@@ -200,7 +201,7 @@ internal fun BriefampelLayout(
                 }
             }
             Text(
-                "Sortiert und entwirft. Ersetzt keine Rechtsberatung – Fristen selbst gegenprüfen.",
+                sag("Sortiert und entwirft. Ersetzt keine Rechtsberatung – Fristen selbst gegenprüfen."),
                 style = Schrift.Fuss, color = c.tinteHinweis,
                 modifier = Modifier.fillMaxWidth().navigationBarsPadding().padding(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 10.dp),
             )
@@ -209,11 +210,15 @@ internal fun BriefampelLayout(
     }
     AppSheets(state, model, initialSheetScroll)
     when {
+        state.spracheWaehlen -> Unit
         state.showIntro -> Intro(model::finishIntro, ton = state.introTon)
         state.sperre != Sperre.OFFEN -> SperrBildschirm(state, model, biometrie)
     }
     // Das Kurz-Intro liegt über allem, auch über der Sperre, und blendet dann zu ihr über.
-    if (state.kurzIntro && !state.showIntro) KurzIntro(model::kurzIntroFertig, ton = state.introTon)
+    if (state.kurzIntro && !state.showIntro && !state.spracheWaehlen) KurzIntro(model::kurzIntroFertig, ton = state.introTon)
+    // Beim allerersten Start zuerst die Sprache, noch vor dem Intro.
+    if (state.spracheWaehlen) SprachWahl(state.sprache, model::spracheGewaehlt)
+    }
 }
 
 @Composable
@@ -228,7 +233,7 @@ private fun Kopfzeile(s: UiState, model: BriefampelViewModel) {
             Spacer(Modifier.width(10.dp))
             Text("Briefampel", style = Schrift.Wortmarke, color = c.tinte)
         } else {
-            RundKnopf(Symbole.Zurueck, "Zurück", model::back, enabled = !s.importing)
+            RundKnopf(Symbole.Zurueck, sag("Zurück"), model::back, enabled = !s.importing)
         }
         Spacer(Modifier.weight(1f))
         // Auf Ergebnis- und Antwortseite immer beschriftet erreichbar; auf dem Start übernimmt das die Karte „Meine Briefe“.
@@ -236,7 +241,7 @@ private fun Kopfzeile(s: UiState, model: BriefampelViewModel) {
             MeineBriefePille(s.verlauf.size, enabled = !s.loading && !s.writing && !s.importing, onClick = model::verlaufOeffnen)
             Spacer(Modifier.width(10.dp))
         }
-        RundKnopf(Symbole.Zahnrad, "Einstellungen", { model.sheet(Sheet.SETTINGS) }, enabled = !s.loading && !s.writing && !s.importing)
+        RundKnopf(Symbole.Zahnrad, sag("Einstellungen"), { model.sheet(Sheet.SETTINGS) }, enabled = !s.loading && !s.writing && !s.importing)
     }
 }
 
@@ -251,7 +256,7 @@ private fun MeineBriefePille(anzahl: Int, enabled: Boolean, onClick: () -> Unit)
         Row(Modifier.padding(start = 12.dp, end = 14.dp, top = 10.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
             Icon(Symbole.Verlauf, null, Modifier.size(18.dp))
             Spacer(Modifier.width(7.dp))
-            Text("Meine Briefe", style = Schrift.KnopfKlein)
+            Text(sag("Meine Briefe"), style = Schrift.KnopfKlein)
             if (anzahl > 0) {
                 Spacer(Modifier.width(7.dp))
                 Box(Modifier.background(c.knopf, CircleShape).padding(horizontal = 7.dp, vertical = 1.dp)) {
@@ -274,8 +279,8 @@ private fun MeineBriefeKarte(s: UiState, model: BriefampelViewModel) {
             Row(Modifier.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
                 Icon(Symbole.Verlauf, null, tint = c.tinte, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
-                Text("Meine Briefe", style = Schrift.KnopfKlein.copy(fontSize = 17.sp, fontWeight = FontWeight.Bold), color = c.tinte, modifier = Modifier.weight(1f))
-                Text("${s.verlauf.size} gespeichert", style = Schrift.Daten.copy(fontSize = 12.sp), color = c.tinteHinweis)
+                Text(sag("Meine Briefe"), style = Schrift.KnopfKlein.copy(fontSize = 17.sp, fontWeight = FontWeight.Bold), color = c.tinte, modifier = Modifier.weight(1f))
+                Text(sag("%d gespeichert", s.verlauf.size), style = Schrift.Daten.copy(fontSize = 12.sp), color = c.tinteHinweis)
             }
             s.verlauf.take(2).forEach { e ->
                 Row(
@@ -296,7 +301,7 @@ private fun MeineBriefeKarte(s: UiState, model: BriefampelViewModel) {
                 }
             }
             Text(
-                if (s.verlauf.size > 2) "Alle ${s.verlauf.size} Briefe ansehen" else "Alle ansehen",
+                if (s.verlauf.size > 2) sag("Alle %d Briefe ansehen", s.verlauf.size) else sag("Alle ansehen"),
                 style = Schrift.KnopfKlein, color = c.tinteLeise,
                 modifier = Modifier.fillMaxWidth().selectable(false, role = Role.Button, onClick = model::verlaufOeffnen).padding(horizontal = 16.dp, vertical = 12.dp),
             )
@@ -306,17 +311,21 @@ private fun MeineBriefeKarte(s: UiState, model: BriefampelViewModel) {
 
 // ---------------------------------------------------------------- Eingang
 
-private val zahlwoerter = listOf("Eine", "Zwei", "Drei", "Vier", "Fünf", "Sechs", "Sieben", "Acht", "Neun", "Zehn", "Elf", "Zwölf")
+private val zahlwoerter = mapOf(
+    Sprache.DE to listOf("Eine", "Zwei", "Drei", "Vier", "Fünf", "Sechs", "Sieben", "Acht", "Neun", "Zehn", "Elf", "Zwölf"),
+    Sprache.EN to listOf("One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Eleven", "Twelve"),
+    Sprache.ES to listOf("Una", "Dos", "Tres", "Cuatro", "Cinco", "Seis", "Siete", "Ocho", "Nueve", "Diez", "Once", "Doce"),
+)
 
 @Composable
 private fun Eingang(s: UiState, model: BriefampelViewModel, scan: () -> Unit, file: () -> Unit) {
     val c = LocalFarben.current
     val seiten = s.input.attachments.sumOf { it.pages }
     val kopf = when {
-        s.loading -> "Moment.\nIch lese\nfür dich."
-        seiten > 0 -> "${zahlwoerter.getOrElse(seiten - 1) { "$seiten" }}\n${if (seiten == 1) "Seite" else "Seiten"}.\nBereit."
-        s.input.text.isNotBlank() -> "Dein\nText.\nBereit."
-        else -> "Gib her.\nIch lese\nzuerst."
+        s.loading -> sag("Moment.\nIch lese\nfür dich.")
+        seiten > 0 -> (zahlwoerter.getValue(LocalSprache.current).getOrElse(seiten - 1) { "$seiten" }).let { if (seiten == 1) sag("%s\nSeite.\nBereit.", it) else sag("%s\nSeiten.\nBereit.", it) }
+        s.input.text.isNotBlank() -> sag("Dein\nText.\nBereit.")
+        else -> sag("Gib her.\nIch lese\nzuerst.")
     }
     Column(Modifier.fillMaxSize()) {
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp)) {
@@ -324,7 +333,7 @@ private fun Eingang(s: UiState, model: BriefampelViewModel, scan: () -> Unit, fi
             Row(verticalAlignment = Alignment.Top) {
                 AmpelFreundin(
                     stimmung = if (s.loading) Stimmung.LIEST else Stimmung.WARTET,
-                    beschreibung = if (s.loading) "Briefampel liest gerade" else "Briefampel, eine freundliche Ampel mit Gesicht und Hut",
+                    beschreibung = if (s.loading) sag("Briefampel liest gerade") else sag("Briefampel, eine freundliche Ampel mit Gesicht und Hut"),
                     hutLuepfen = s.input.attachments.size + if (s.input.text.isNotBlank()) 1 else 0,
                 )
                 Spacer(Modifier.width(22.dp))
@@ -335,7 +344,7 @@ private fun Eingang(s: UiState, model: BriefampelViewModel, scan: () -> Unit, fi
                     Spacer(Modifier.height(14.dp))
                     if (s.loading) LeseStatus()
                     else Text(
-                        if (s.input.hasContent) "Ich schaue rein, du musst es nicht." else "Ich bin da. Du siehst nur die Ampel – und was zu tun ist.",
+                        if (s.input.hasContent) sag("Ich schaue rein, du musst es nicht.") else sag("Ich bin da. Du siehst nur die Ampel – und was zu tun ist."),
                         style = Schrift.TextKlein, color = c.tinteLeise,
                     )
                 }
@@ -351,17 +360,17 @@ private fun Eingang(s: UiState, model: BriefampelViewModel, scan: () -> Unit, fi
             if (!s.configured) {
                 Surface(color = c.flaeche, shape = RoundedCornerShape(18.dp)) {
                     Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Eyebrow("VORSCHAU · KI NOCH NICHT VERBUNDEN")
+                        Eyebrow(sag("VORSCHAU · KI NOCH NICHT VERBUNDEN"))
                         Text(
-                            if (s.personalApiSupported) "Sieh dir die Beispiele an oder hinterlege deinen Gemini-Schlüssel in den Einstellungen."
-                            else "Sieh dir die Beispiele an. Für eigene Briefe muss der KI-Dienst eingerichtet werden.",
+                            if (s.personalApiSupported) sag("Sieh dir die Beispiele an oder hinterlege deinen Gemini-Schlüssel in den Einstellungen.")
+                            else sag("Sieh dir die Beispiele an. Für eigene Briefe muss der KI-Dienst eingerichtet werden."),
                             style = Schrift.TextKlein, color = c.tinteLeise,
                         )
                     }
                 }
                 Spacer(Modifier.height(20.dp))
             }
-            Eyebrow("ODER ERST MAL EIN BEISPIEL")
+            Eyebrow(sag("ODER ERST MAL EIN BEISPIEL"))
             Row(Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Ampel.entries.forEach { a ->
                     Surface(
@@ -372,7 +381,7 @@ private fun Eingang(s: UiState, model: BriefampelViewModel, scan: () -> Unit, fi
                         Row(Modifier.padding(horizontal = 14.dp, vertical = 11.dp), verticalAlignment = Alignment.CenterVertically) {
                             Box(Modifier.size(8.dp).background(Signal.farbe(a), CircleShape))
                             Spacer(Modifier.width(8.dp))
-                            Text(when (a) { Ampel.ROT -> "Mahnung"; Ampel.GELB -> "Rückfrage"; Ampel.GRUEN -> "Termin" }, style = Schrift.KnopfKlein)
+                            Text(when (a) { Ampel.ROT -> sag("Mahnung"); Ampel.GELB -> sag("Rückfrage"); Ampel.GRUEN -> sag("Termin") }, style = Schrift.KnopfKlein)
                         }
                     }
                 }
@@ -380,25 +389,25 @@ private fun Eingang(s: UiState, model: BriefampelViewModel, scan: () -> Unit, fi
             Spacer(Modifier.height(18.dp))
             GuthabenZeile(s.guthaben) { model.sheet(Sheet.PAKETE) }
             Text(
-                "Tipp: Ein PDF kannst du auch direkt aus der Mail-App mit Briefampel teilen.",
+                sag("Tipp: Ein PDF kannst du auch direkt aus der Mail-App mit Briefampel teilen."),
                 style = Schrift.Fuss, color = c.tinteHinweis, modifier = Modifier.padding(top = 10.dp, bottom = 12.dp),
             )
         }
         Column(Modifier.padding(horizontal = 20.dp).padding(top = 8.dp, bottom = 6.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             when {
-                s.loading -> Pille("Prüfung abbrechen", model::stop, art = PillenArt.NEBEN)
+                s.loading -> Pille(sag("Prüfung abbrechen"), model::stop, art = PillenArt.NEBEN)
                 s.input.hasContent -> {
-                    Pille("Ampel prüfen", model::analyze, enabled = !s.importing)
+                    Pille(sag("Ampel prüfen"), model::analyze, enabled = !s.importing)
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Pille("Seite dazu", file, Modifier.weight(1f), PillenArt.NEBEN, Symbole.Plus, enabled = !s.importing)
-                        Pille("Text einfügen", { model.sheet(Sheet.PASTE) }, Modifier.weight(1f), PillenArt.NEBEN, Symbole.Einfuegen, enabled = !s.importing)
+                        Pille(sag("Seite dazu"), file, Modifier.weight(1f), PillenArt.NEBEN, Symbole.Plus, enabled = !s.importing)
+                        Pille(sag("Text einfügen"), { model.sheet(Sheet.PASTE) }, Modifier.weight(1f), PillenArt.NEBEN, Symbole.Einfuegen, enabled = !s.importing)
                     }
                 }
                 else -> {
-                    Pille(if (s.importing) "Wird vorbereitet …" else "Brief scannen", scan, symbol = Symbole.Scannen, enabled = !s.importing)
+                    Pille(if (s.importing) sag("Wird vorbereitet …") else sag("Brief scannen"), scan, symbol = Symbole.Scannen, enabled = !s.importing)
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Pille("Datei", file, Modifier.weight(1f), PillenArt.NEBEN, Symbole.Datei, enabled = !s.importing)
-                        Pille("Text einfügen", { model.sheet(Sheet.PASTE) }, Modifier.weight(1f), PillenArt.NEBEN, Symbole.Einfuegen, enabled = !s.importing)
+                        Pille(sag("Datei"), file, Modifier.weight(1f), PillenArt.NEBEN, Symbole.Datei, enabled = !s.importing)
+                        Pille(sag("Text einfügen"), { model.sheet(Sheet.PASTE) }, Modifier.weight(1f), PillenArt.NEBEN, Symbole.Einfuegen, enabled = !s.importing)
                     }
                 }
             }
@@ -420,18 +429,18 @@ private fun GuthabenZeile(guthaben: Int, pakete: () -> Unit) {
     ) {
         Row(Modifier.padding(horizontal = 16.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Eyebrow("DEIN GUTHABEN")
+                Eyebrow(sag("DEIN GUTHABEN"))
                 Text(
                     when {
-                        guthaben == 0 -> "Keine Analysen mehr · ab 1,99 €"
-                        guthaben == 1 -> "Noch 1 Analyse. Danach ab 1,99 € für 10 Briefe."
-                        else -> "Noch ${Guthaben.analysenText(guthaben)} · danach ab 1,99 € für 10"
+                        guthaben == 0 -> sag("Keine Analysen mehr · ab 1,99 €")
+                        guthaben == 1 -> sag("Noch 1 Analyse. Danach ab 1,99 € für 10 Briefe.")
+                        else -> sag("Noch %s · danach ab 1,99 € für 10", analysenText(guthaben))
                     },
                     style = Schrift.KnopfKlein, color = if (guthaben == 0) c.gelbText else c.tinte,
                 )
-                Text("1 Analyse = ein Brief geprüft + bis zu 3 Antworten", style = Schrift.Fuss, color = c.tinteHinweis)
+                Text(sag("1 Analyse = ein Brief geprüft + bis zu 3 Antworten"), style = Schrift.Fuss, color = c.tinteHinweis)
             }
-            Text("Preise", style = Schrift.KnopfKlein, color = c.tinteLeise, modifier = Modifier.padding(start = 12.dp))
+            Text(sag("Preise"), style = Schrift.KnopfKlein, color = c.tinteLeise, modifier = Modifier.padding(start = 12.dp))
             Icon(Symbole.Weiter, null, tint = c.tinteHinweis, modifier = Modifier.size(16.dp))
         }
     }
@@ -443,7 +452,7 @@ private fun LeseStatus() {
     val wenig = LocalWenigBewegung.current
     val lauf by rememberInfiniteTransition(label = "Status").animateFloat(0f, 1f, infiniteRepeatable(tween(2400, easing = LinearEasing)), label = "Lauf")
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text("LIEST · PRÜFT DEN TON · SUCHT FRISTEN", style = Schrift.Marke, color = c.tinteLeise)
+        Text(sag("LIEST · PRÜFT DEN TON · SUCHT FRISTEN"), style = Schrift.Marke, color = c.tinteLeise)
         Box(Modifier.fillMaxWidth().height(3.dp).clip(CircleShape).background(c.linie)) {
             Box(Modifier.fillMaxWidth(if (wenig) 0.4f else lauf).fillMaxHeight().background(c.tinte))
         }
@@ -459,15 +468,15 @@ private fun ImUmschlag(s: UiState, model: BriefampelViewModel) {
             Papierstapel(minOf(3, s.input.attachments.sumOf { it.pages } + if (s.input.text.isNotBlank()) 1 else 0).coerceAtLeast(1))
             Spacer(Modifier.width(16.dp))
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Eyebrow("IM UMSCHLAG · NOCH NICHT GESENDET")
-                if (s.input.text.isNotBlank()) Eintrag("Text · ${s.input.text.length} Zeichen", "Text entfernen", !s.loading && !s.importing) { model.setText("") }
+                Eyebrow(sag("IM UMSCHLAG · NOCH NICHT GESENDET"))
+                if (s.input.text.isNotBlank()) Eintrag(sag("Text · %d Zeichen", s.input.text.length), sag("Text entfernen"), !s.loading && !s.importing) { model.setText("") }
                 s.input.attachments.forEach { f ->
-                    Eintrag("${f.name} · ${f.pages} ${if (f.pages == 1) "Seite" else "Seiten"}", "${f.name} entfernen", !s.loading && !s.importing) { model.remove(f.id) }
+                    Eintrag(if (f.pages == 1) sag("%s · 1 Seite", f.name) else sag("%s · %d Seiten", f.name, f.pages), sag("%s entfernen", f.name), !s.loading && !s.importing) { model.remove(f.id) }
                 }
                 if (s.importing) LeseStatus()
                 if (s.input.hasContent && !s.loading && !s.importing) {
                     Text(
-                        "Original ansehen", style = Schrift.KnopfKlein, color = c.tinteLeise,
+                        sag("Original ansehen"), style = Schrift.KnopfKlein, color = c.tinteLeise,
                         modifier = Modifier.clip(CircleShape).selectable(false, role = Role.Button) { model.sheet(Sheet.ORIGINAL) }.padding(vertical = 10.dp),
                     )
                 }
@@ -505,7 +514,6 @@ private fun Papierstapel(anzahl: Int) {
 
 // ---------------------------------------------------------------- Ergebnis
 
-private val wochentag = DateTimeFormatter.ofPattern("EE", Locale.GERMAN)
 
 @Composable
 private fun Ergebnis(
@@ -523,9 +531,9 @@ private fun Ergebnis(
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState(initialScroll)).padding(horizontal = 20.dp).padding(bottom = 140.dp)) {
             Eyebrow(
                 when {
-                    s.example -> "BEISPIEL · KEIN EIGENER BRIEF"
-                    s.ausVerlauf && eintrag != null -> "AUS „MEINE BRIEFE“ · GEPRÜFT ${Fristen.format(tagDes(eintrag.geprueftAm))}"
-                    else -> "GEPRÜFT ${heute.format(DateTimeFormatter.ofPattern("dd.MM."))} · IN „MEINE BRIEFE“ GESPEICHERT"
+                    s.example -> sag("BEISPIEL · KEIN EIGENER BRIEF")
+                    s.ausVerlauf && eintrag != null -> sag("AUS „MEINE BRIEFE“ · GEPRÜFT %s", Fristen.format(tagDes(eintrag.geprueftAm)))
+                    else -> sag("GEPRÜFT %s · IN „MEINE BRIEFE“ GESPEICHERT", heute.format(DateTimeFormatter.ofPattern("dd.MM.")))
                 },
                 if (s.example) c.gelbText else c.tinteHinweis,
                 Modifier.padding(top = 4.dp),
@@ -533,22 +541,22 @@ private fun Ergebnis(
             Row(Modifier.padding(top = 20.dp), verticalAlignment = Alignment.Top) {
                 AmpelFreundin(
                     a.ampel.alsStimmung(),
-                    when (a.ampel) { Ampel.ROT -> "Ampel: Rot – lieber nicht lesen"; Ampel.GELB -> "Ampel: Gelb – kümmern, aber sachlich"; Ampel.GRUEN -> "Ampel: Grün – harmlos" },
+                    when (a.ampel) { Ampel.ROT -> sag("Ampel: Rot – lieber nicht lesen"); Ampel.GELB -> sag("Ampel: Gelb – kümmern, aber sachlich"); Ampel.GRUEN -> sag("Ampel: Grün – harmlos") },
                     lampe = 52.dp,
                     lampenMitte = lampenMitte,
                 )
                 Spacer(Modifier.width(22.dp))
                 Column(Modifier.weight(1f).padding(top = 24.dp)) {
-                    Eyebrow(when (a.ampel) { Ampel.ROT -> "ROT · ICH KÜMMERE MICH"; Ampel.GELB -> "GELB · HANDELN, KEIN ÄRGER"; Ampel.GRUEN -> "GRÜN · HARMLOS" }, farbe)
+                    Eyebrow(when (a.ampel) { Ampel.ROT -> sag("ROT · ICH KÜMMERE MICH"); Ampel.GELB -> sag("GELB · HANDELN, KEIN ÄRGER"); Ampel.GRUEN -> sag("GRÜN · HARMLOS") }, farbe)
                     Text(
-                        when (a.ampel) { Ampel.ROT -> "Lieber\nnicht\nlesen."; Ampel.GELB -> "Kümmern.\nAber ganz\nsachlich."; Ampel.GRUEN -> "Ganz\nentspannt\nlesen." },
+                        when (a.ampel) { Ampel.ROT -> sag("Lieber\nnicht\nlesen."); Ampel.GELB -> sag("Kümmern.\nAber ganz\nsachlich."); Ampel.GRUEN -> sag("Ganz\nentspannt\nlesen.") },
                         style = Schrift.Anzeige.copy(fontSize = 42.sp, lineHeight = 41.sp), color = farbe, modifier = Modifier.padding(top = 12.dp),
                     )
                     Text(
                         when (a.ampel) {
-                            Ampel.ROT -> "Ich hab ihn für dich gelesen. Keine Panik – hier steht alles, was du wissen musst."
-                            Ampel.GELB -> "Du musst etwas tun – Ärger gibt es keinen."
-                            Ampel.GRUEN -> "Nichts Unangenehmes drin. Versprochen."
+                            Ampel.ROT -> sag("Ich hab ihn für dich gelesen. Keine Panik – hier steht alles, was du wissen musst.")
+                            Ampel.GELB -> sag("Du musst etwas tun – Ärger gibt es keinen.")
+                            Ampel.GRUEN -> sag("Nichts Unangenehmes drin. Versprochen.")
                         },
                         style = Schrift.TextKlein, color = c.tinteLeise, modifier = Modifier.padding(top = 12.dp),
                     )
@@ -556,20 +564,20 @@ private fun Ergebnis(
             }
             Text(a.titel, style = Schrift.Titel.copy(fontSize = 27.sp, lineHeight = 30.sp), color = c.tinte, modifier = Modifier.padding(top = 30.dp))
             Text(
-                listOfNotNull(a.absender, a.datum?.let(Fristen::format), a.aktenzeichen?.let { "Az. $it" }).joinToString(" · "),
+                listOfNotNull(a.absender, a.datum?.let(Fristen::format), a.aktenzeichen?.let { sag("Az. %s", it) }).joinToString(" · "),
                 style = Schrift.Daten, color = c.tinteHinweis, modifier = Modifier.padding(top = 10.dp),
             )
             Text(a.kurz, style = Schrift.Text.copy(fontSize = 18.sp, lineHeight = 26.sp), color = c.tinte, modifier = Modifier.padding(top = 14.dp))
             Spacer(Modifier.height(24.dp))
             FristKarte(a, heute)
             Spacer(Modifier.height(20.dp))
-            a.verlangt?.let { FaktZeile("WOLLEN", it) }
-            FaktZeile("TON", "${a.ton.replaceFirstChar(Char::uppercase)}. ${a.tonnotiz}")
-            FaktZeile("WENN NICHTS", a.risiko)
-            FaktZeile("MEIN RAT", a.empfehlung, betont = true, letzte = true)
+            a.verlangt?.let { FaktZeile(sag("WOLLEN"), it) }
+            FaktZeile(sag("TON"), "${a.ton.replaceFirstChar(Char::uppercase)}. ${a.tonnotiz}")
+            FaktZeile(sag("WENN NICHTS"), a.risiko)
+            FaktZeile(sag("MEIN RAT"), a.empfehlung, betont = true, letzte = true)
             Spacer(Modifier.height(20.dp))
             if (s.ausVerlauf) Text(
-                "Das Original bewahre ich nicht auf – im Verlauf liegen nur Ergebnis und Antworten.",
+                sag("Das Original bewahre ich nicht auf – im Verlauf liegen nur Ergebnis und Antworten."),
                 style = Schrift.TextKlein, color = c.tinteHinweis,
             ) else VersiegelterBrief(r.seiten) { model.sheet(Sheet.ORIGINAL) }
             eintrag?.antworten?.takeIf { it.isNotEmpty() }?.let {
@@ -577,12 +585,12 @@ private fun Ergebnis(
                 GespeicherteAntworten(it, copy, share)
             }
             if (s.ausVerlauf && eintrag != null) Text(
-                "Aus „Meine Briefe“ löschen", style = Schrift.KnopfKlein, color = c.rotText, textAlign = TextAlign.Center,
+                sag("Aus „Meine Briefe“ löschen"), style = Schrift.KnopfKlein, color = c.rotText, textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth().padding(top = 12.dp).clip(CircleShape)
                     .selectable(false, role = Role.Button) { loeschen = true }.padding(vertical = 14.dp),
             )
             Text(
-                "${if (s.example) "Eigenen" else "Neuen"} Brief prüfen", style = Schrift.KnopfKlein, color = c.tinteLeise, textAlign = TextAlign.Center,
+                if (s.example) sag("Eigenen Brief prüfen") else sag("Neuen Brief prüfen"), style = Schrift.KnopfKlein, color = c.tinteLeise, textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth().padding(top = 12.dp).clip(CircleShape)
                     .selectable(false, role = Role.Button) { if (s.example) model.back() else model.newLetter() }.padding(vertical = 14.dp),
             )
@@ -594,24 +602,24 @@ private fun Ergebnis(
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             if (a.antwortNoetig) {
-                Pille("Antwort schreiben", model::openReply, symbol = Symbole.Stift, enabled = !s.example)
+                Pille(sag("Antwort schreiben"), model::openReply, symbol = Symbole.Stift, enabled = !s.example)
             } else {
-                Pille("Brief jetzt lesen", { model.sheet(Sheet.ORIGINAL) }, symbol = Symbole.Umschlag)
+                Pille(sag("Brief jetzt lesen"), { model.sheet(Sheet.ORIGINAL) }, symbol = Symbole.Umschlag)
                 Text(
-                    "Antwort nicht nötig – trotzdem eine?", style = Schrift.KnopfKlein, color = if (s.example) c.tinteHinweis else c.tinteLeise,
+                    sag("Antwort nicht nötig – trotzdem eine?"), style = Schrift.KnopfKlein, color = if (s.example) c.tinteHinweis else c.tinteLeise,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth().clip(CircleShape).selectable(false, enabled = !s.example, role = Role.Button, onClick = model::openReply).padding(vertical = 12.dp),
                 )
             }
-            if (s.example) Text("Lade zuerst deinen eigenen Brief hoch, um eine Antwort zu schreiben.", style = Schrift.Fuss, color = c.tinteLeise, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+            if (s.example) Text(sag("Lade zuerst deinen eigenen Brief hoch, um eine Antwort zu schreiben."), style = Schrift.Fuss, color = c.tinteLeise, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
         }
     }
     if (loeschen && eintrag != null) AlertDialog(
         onDismissRequest = { loeschen = false },
-        title = { Text("Diesen Brief löschen?") },
-        text = { Text("„${a.titel}“ und ${if (eintrag.antworten.isEmpty()) "das Ergebnis" else "deine Antworten dazu"} verschwinden von diesem Handy.") },
-        confirmButton = { TextButton(onClick = { loeschen = false; model.eintragLoeschen(eintrag.id) }) { Text("Löschen", color = c.rotText) } },
-        dismissButton = { TextButton(onClick = { loeschen = false }) { Text("Behalten", color = c.tinte) } },
+        title = { Text(sag("Diesen Brief löschen?")) },
+        text = { Text(if (eintrag.antworten.isEmpty()) sag("„%s“ und das Ergebnis verschwinden von diesem Handy.", a.titel) else sag("„%s“ und deine Antworten dazu verschwinden von diesem Handy.", a.titel)) },
+        confirmButton = { TextButton(onClick = { loeschen = false; model.eintragLoeschen(eintrag.id) }) { Text(sag("Löschen"), color = c.rotText) } },
+        dismissButton = { TextButton(onClick = { loeschen = false }) { Text(sag("Behalten"), color = c.tinte) } },
         containerColor = c.flaeche, titleContentColor = c.tinte, textContentColor = c.tinteLeise,
     )
 }
@@ -630,12 +638,12 @@ private fun FristKarte(a: LetterAnalysis, heute: LocalDate) {
                 Row(verticalAlignment = Alignment.Bottom) {
                     if (tage > 0) Row(verticalAlignment = Alignment.Bottom) {
                         Text("$tage", style = Schrift.ZahlGross.copy(fontSize = 76.sp, lineHeight = 70.sp, letterSpacing = (-2).sp), color = if (dringend) c.rotText else c.tinte)
-                        Text(if (tage == 1L) "Tag" else "Tage", style = Schrift.Titel.copy(fontSize = 22.sp), color = c.tinte, modifier = Modifier.padding(start = 8.dp, bottom = 6.dp))
-                    } else Text(Fristen.restText(datum, heute), style = Schrift.Titel, color = c.rotText)
+                        Text(if (tage == 1L) sag("Tag") else sag("Tage"), style = Schrift.Titel.copy(fontSize = 22.sp), color = c.tinte, modifier = Modifier.padding(start = 8.dp, bottom = 6.dp))
+                    } else Text(Fristen.restText(datum, heute, LocalSprache.current), style = Schrift.Titel, color = c.rotText)
                     Spacer(Modifier.weight(1f))
                     Column(horizontalAlignment = Alignment.End) {
-                        Eyebrow("FRIST · LAUT BRIEF")
-                        Text("${datum.format(wochentag).trimEnd('.')} ${Fristen.format(datum)}", style = Schrift.ZahlGross.copy(fontSize = 15.sp, fontWeight = FontWeight.Medium), color = c.tinte, modifier = Modifier.padding(top = 4.dp))
+                        Eyebrow(sag("FRIST · LAUT BRIEF"))
+                        Text("${datum.format(DateTimeFormatter.ofPattern("EE", LocalSprache.current.locale)).trimEnd('.')} ${Fristen.format(datum)}", style = Schrift.ZahlGross.copy(fontSize = 15.sp, fontWeight = FontWeight.Medium), color = c.tinte, modifier = Modifier.padding(top = 4.dp))
                     }
                 }
                 val rest = tage.coerceIn(0, 13).toInt()
@@ -654,8 +662,8 @@ private fun FristKarte(a: LetterAnalysis, heute: LocalDate) {
         }
         frist != null -> Surface(color = c.flaeche, shape = RoundedCornerShape(24.dp), border = BorderStroke(1.dp, c.linie), modifier = karte) {
             Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Eyebrow("FRIST")
-                Text("Datum unklar – bitte prüfen", style = Schrift.Titel, color = c.gelbText)
+                Eyebrow(sag("FRIST"))
+                Text(sag("Datum unklar – bitte prüfen"), style = Schrift.Titel, color = c.gelbText)
                 Text(frist.hinweis, style = Schrift.TextKlein, color = c.tinteLeise)
             }
         }
@@ -664,8 +672,8 @@ private fun FristKarte(a: LetterAnalysis, heute: LocalDate) {
                 Icon(Symbole.Haken, null, tint = c.gruenText, modifier = Modifier.size(26.dp))
                 Spacer(Modifier.width(12.dp))
                 Column {
-                    Eyebrow("ANTWORT")
-                    Text("Nicht nötig", style = Schrift.Titel.copy(fontSize = 22.sp), color = c.tinte)
+                    Eyebrow(sag("ANTWORT"))
+                    Text(sag("Nicht nötig"), style = Schrift.Titel.copy(fontSize = 22.sp), color = c.tinte)
                 }
             }
         }
@@ -686,8 +694,8 @@ private fun VersiegelterBrief(seiten: Int, oeffnen: () -> Unit) {
             de.briefampel.app.ui.figur.Briefumschlag(Modifier.size(64.dp, 46.dp), siegel = true)
             Spacer(Modifier.width(16.dp))
             Column(Modifier.weight(1f)) {
-                Text("Brief doch selbst lesen", style = Schrift.KnopfKlein.copy(fontSize = 16.5.sp, fontWeight = FontWeight.Bold))
-                Text("$seiten ${if (seiten == 1) "Seite" else "Seiten"} · bleibt zu, bis du willst", style = Schrift.TextKlein, color = c.tinteHinweis)
+                Text(sag("Brief doch selbst lesen"), style = Schrift.KnopfKlein.copy(fontSize = 16.5.sp, fontWeight = FontWeight.Bold))
+                Text(if (seiten == 1) sag("1 Seite · bleibt zu, bis du willst") else sag("%d Seiten · bleibt zu, bis du willst", seiten), style = Schrift.TextKlein, color = c.tinteHinweis)
             }
             Icon(Symbole.Weiter, null, tint = c.tinteHinweis, modifier = Modifier.size(18.dp))
         }
@@ -719,15 +727,15 @@ private fun Antwort(s: UiState, model: BriefampelViewModel, copy: () -> Unit, sh
     Column(Modifier.fillMaxSize().verticalScroll(scroll).padding(horizontal = 20.dp).padding(bottom = 20.dp), verticalArrangement = Arrangement.spacedBy(22.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             ampel?.let { Box(Modifier.size(10.dp).background(Signal.farbe(it), CircleShape)); Spacer(Modifier.width(8.dp)) }
-            Eyebrow("AN ${(s.result?.analyse?.absender ?: "[EMPFÄNGER]").uppercase(Locale.GERMAN)}")
+            Eyebrow(sag("AN %s", (s.result?.analyse?.absender ?: sag("[EMPFÄNGER]")).uppercase(LocalSprache.current.locale)))
         }
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("Was soll rein?", style = Schrift.Anzeige.copy(fontSize = 36.sp, lineHeight = 36.sp), color = c.tinte)
-            Text("Stichworte reichen. Den Rest schreibe ich – und erfinde nichts dazu.", style = Schrift.Text, color = c.tinteLeise)
+            Text(sag("Was soll rein?"), style = Schrift.Anzeige.copy(fontSize = 36.sp, lineHeight = 36.sp), color = c.tinte)
+            Text(sag("Stichworte reichen. Den Rest schreibe ich – und erfinde nichts dazu."), style = Schrift.Text, color = c.tinteLeise)
         }
         s.result?.analyse?.stichwortVorschlaege?.takeIf { it.isNotEmpty() }?.let { vorschlaege ->
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Eyebrow("VORSCHLÄGE · ANTIPPEN")
+                Eyebrow(sag("VORSCHLÄGE · ANTIPPEN"))
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     vorschlaege.forEach { v ->
                         val an = s.keywords.lines().any { it.trim() == v }
@@ -745,17 +753,17 @@ private fun Antwort(s: UiState, model: BriefampelViewModel, copy: () -> Unit, sh
                 }
             }
         }
-        Feld(s.keywords, model::keywords, "Deine Stichworte", enabled = !s.writing, minLines = 4)
+        Feld(s.keywords, model::keywords, sag("Deine Stichworte"), enabled = !s.writing, minLines = 4)
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Eyebrow("TON")
+            Eyebrow(sag("TON"))
             Row(Modifier.fillMaxWidth().background(c.flaeche, RoundedCornerShape(26.dp)).padding(4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                Tone.entries.forEach { t ->
-                    val an = s.tone == t
+                Tone.entries.forEach { ton ->
+                    val an = s.tone == ton
                     Box(
                         Modifier.weight(1f).height(44.dp).clip(CircleShape).background(if (an) c.knopf else Color.Transparent)
-                            .selectable(an, enabled = !s.writing, role = Role.RadioButton) { model.tone(t) },
+                            .selectable(an, enabled = !s.writing, role = Role.RadioButton) { model.tone(ton) },
                         contentAlignment = Alignment.Center,
-                    ) { Text(t.label, style = Schrift.KnopfKlein.copy(fontSize = 14.5.sp, fontWeight = if (an) FontWeight.Bold else FontWeight.SemiBold), color = if (an) c.aufKnopf else c.tinteLeise) }
+                    ) { Text(sag(ton.label), style = Schrift.KnopfKlein.copy(fontSize = 14.5.sp, fontWeight = if (an) FontWeight.Bold else FontWeight.SemiBold), color = if (an) c.aufKnopf else c.tinteLeise) }
                 }
             }
         }
@@ -765,8 +773,8 @@ private fun Antwort(s: UiState, model: BriefampelViewModel, copy: () -> Unit, sh
         ) {
             Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                    Eyebrow("ABSENDER · NUR AUF DIESEM HANDY")
-                    Text(listOf(s.sender.name, s.sender.address.lines().joinToString(", ")).filter { it.isNotBlank() }.joinToString(" · ").ifBlank { "Absender ergänzen (optional)" }, style = Schrift.TextKlein)
+                    Eyebrow(sag("ABSENDER · NUR AUF DIESEM HANDY"))
+                    Text(listOf(s.sender.name, s.sender.address.lines().joinToString(", ")).filter { it.isNotBlank() }.joinToString(" · ").ifBlank { sag("Absender ergänzen (optional)") }, style = Schrift.TextKlein)
                 }
                 Icon(if (absenderOffen) Symbole.Schliessen else Symbole.Plus, null, tint = c.tinteHinweis, modifier = Modifier.size(18.dp))
             }
@@ -778,17 +786,17 @@ private fun Antwort(s: UiState, model: BriefampelViewModel, copy: () -> Unit, sh
                 Puls()
                 Spacer(Modifier.width(10.dp))
                 val woerter = s.reply.split(Regex("\\s+")).count { it.isNotBlank() }
-                Text(if (woerter == 0) "DENKT NACH …" else "SCHREIBT · $woerter WÖRTER", style = Schrift.Marke, color = c.tinte, modifier = Modifier.weight(1f))
-                Pille("Stopp", model::stop, Modifier, PillenArt.NEBEN, hoehe = 44.dp)
+                Text(if (woerter == 0) sag("DENKT NACH …") else sag("SCHREIBT · %d WÖRTER", woerter), style = Schrift.Marke, color = c.tinte, modifier = Modifier.weight(1f))
+                Pille(sag("Stopp"), model::stop, Modifier, PillenArt.NEBEN, hoehe = 44.dp)
             }
         } else {
-            Pille(if (s.reply.isEmpty()) "Antwort schreiben" else "Neu formulieren", model::write, symbol = Symbole.Stift)
+            Pille(if (s.reply.isEmpty()) sag("Antwort schreiben") else sag("Neu formulieren"), model::write, symbol = Symbole.Stift)
             model.freieAntworten(s)?.let { frei ->
                 Text(
                     when (frei) {
-                        0 -> "Die 3 Antworten zu diesem Brief sind verbraucht. Die nächste kostet 1 Analyse (noch ${s.guthaben})."
-                        1 -> "Noch 1 Antwort zu diesem Brief inklusive."
-                        else -> "Noch $frei Antworten zu diesem Brief inklusive."
+                        0 -> sag("Die 3 Antworten zu diesem Brief sind verbraucht. Die nächste kostet 1 Analyse (noch %d).", s.guthaben)
+                        1 -> sag("Noch 1 Antwort zu diesem Brief inklusive.")
+                        else -> sag("Noch %d Antworten zu diesem Brief inklusive.", frei)
                     },
                     style = Schrift.Fuss, color = c.tinteHinweis,
                 )
@@ -797,11 +805,11 @@ private fun Antwort(s: UiState, model: BriefampelViewModel, copy: () -> Unit, sh
         if (s.writing && s.reply.isBlank()) SchreibPlatzhalter()
         if (s.reply.isNotBlank()) {
             Briefpapier(s.reply, s.writing, vorschau)
-            if (s.writing && !folgen) Text("Aktuellen Text zeigen", style = Schrift.KnopfKlein, color = c.tinteLeise, modifier = Modifier.clip(CircleShape).selectable(false, role = Role.Button) { folgen = true }.padding(12.dp))
-            Text(if (s.writing) "Der Entwurf wächst. Du kannst jederzeit stoppen." else "Entwurf prüfen und Platzhalter in [ ] ergänzen, bevor du ihn versendest.", style = Schrift.Fuss, color = c.tinteLeise)
+            if (s.writing && !folgen) Text(sag("Aktuellen Text zeigen"), style = Schrift.KnopfKlein, color = c.tinteLeise, modifier = Modifier.clip(CircleShape).selectable(false, role = Role.Button) { folgen = true }.padding(12.dp))
+            Text(if (s.writing) sag("Der Entwurf wächst. Du kannst jederzeit stoppen.") else sag("Entwurf prüfen und Platzhalter in [ ] ergänzen, bevor du ihn versendest."), style = Schrift.Fuss, color = c.tinteLeise)
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Pille("Kopieren", copy, Modifier.weight(1f), PillenArt.NEBEN, Symbole.Kopieren, enabled = !s.writing)
-                Pille("Teilen", share, Modifier.weight(1f), PillenArt.NEBEN, Symbole.Teilen, enabled = !s.writing)
+                Pille(sag("Kopieren"), copy, Modifier.weight(1f), PillenArt.NEBEN, Symbole.Kopieren, enabled = !s.writing)
+                Pille(sag("Teilen"), share, Modifier.weight(1f), PillenArt.NEBEN, Symbole.Teilen, enabled = !s.writing)
             }
         }
     }
@@ -831,7 +839,7 @@ private fun SchreibPlatzhalter() {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Symbole.Stift, null, tint = c.aufPapier, modifier = Modifier.size(18.dp).rotate(if (wenig) 0f else sin(t * 2 * PI.toFloat() * 3) * 8f))
                 Spacer(Modifier.width(10.dp))
-                Text("ICH FORMULIERE DEINEN BRIEF …", style = Schrift.Marke, color = c.aufPapier.copy(alpha = 0.7f))
+                Text(sag("ICH FORMULIERE DEINEN BRIEF …"), style = Schrift.Marke, color = c.aufPapier.copy(alpha = 0.7f))
             }
             zeilen.forEachIndexed { i, breite ->
                 // Jede Zeile wächst nacheinander, wie mit der Hand geschrieben.
@@ -841,7 +849,7 @@ private fun SchreibPlatzhalter() {
                     Box(Modifier.fillMaxWidth(anteil).fillMaxHeight().background(c.aufPapier.copy(alpha = 0.22f), CircleShape))
                 }
             }
-            Text("Das dauert meist ein paar Sekunden. Du kannst jederzeit stoppen.", style = Schrift.Fuss, color = c.aufPapier.copy(alpha = 0.6f))
+            Text(sag("Das dauert meist ein paar Sekunden. Du kannst jederzeit stoppen."), style = Schrift.Fuss, color = c.aufPapier.copy(alpha = 0.6f))
         }
     }
 }

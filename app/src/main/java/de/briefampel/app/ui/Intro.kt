@@ -83,7 +83,7 @@ internal fun Intro(fertig: () -> Unit, ton: Boolean = false) {
         ) {
             // Sie hält den Schirm selbst am Stock; nach der Landung lässt sie ihn sinken.
             AmpelFreundin(
-                Stimmung.WARTET, "Die Briefampel kommt mit dem Regenschirm in der Hand angeschwebt",
+                Stimmung.WARTET, sag("Die Briefampel kommt mit dem Regenschirm in der Hand angeschwebt"),
                 lampe = 60.dp, hutLuepfen = if (t > 4.5f) 1 else 0, arme = true, schirm = schirm,
             )
         }
@@ -104,28 +104,28 @@ internal fun Intro(fertig: () -> Unit, ton: Boolean = false) {
         ) {
             Briefumschlag(Modifier.fillMaxSize(), siegel = true)
             Text(
-                "LETZTE MAHNUNG", style = Schrift.Marke, color = Color(0xFFC8392A),
+                sag("LETZTE MAHNUNG"), style = Schrift.Marke, color = Color(0xFFC8392A),
                 modifier = Modifier.align(Alignment.BottomStart).padding(14.dp).graphicsLayer { rotationZ = -4f },
             )
         }
 
         Column(Modifier.statusBarsPadding().padding(horizontal = 28.dp, vertical = 20.dp)) {
             Box {
-                Unterzeile("Manche Post\nmacht Angst.", fenster(0.2f, 0.6f) * (1f - fenster(1.9f, 2.2f)))
-                Unterzeile("Keine Sorge.\nIch bin da.", fenster(2.8f, 3.1f) * (1f - fenster(4.1f, 4.4f)))
-                Unterzeile("Gib her.\nIch lese zuerst.", fenster(4.4f, 4.8f))
+                Unterzeile(sag("Manche Post\nmacht Angst."), fenster(0.2f, 0.6f) * (1f - fenster(1.9f, 2.2f)))
+                Unterzeile(sag("Keine Sorge.\nIch bin da."), fenster(2.8f, 3.1f) * (1f - fenster(4.1f, 4.4f)))
+                Unterzeile(sag("Gib her.\nIch lese zuerst."), fenster(4.4f, 4.8f))
             }
         }
 
         Text(
-            "Überspringen", style = Schrift.KnopfKlein, color = c.tinteLeise,
+            sag("Überspringen"), style = Schrift.KnopfKlein, color = c.tinteLeise,
             modifier = Modifier.align(Alignment.TopEnd).statusBarsPadding().padding(8.dp).clip(CircleShape)
                 .clickable(onClick = fertig).padding(horizontal = 14.dp, vertical = 12.dp).alpha(1f - fenster(5.2f, 5.6f)),
         )
         Box(
             Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(20.dp).alpha(fenster(5.2f, 5.8f)),
         ) {
-            if (t > 5.2f) Pille("Los geht’s", fertig)
+            if (t > 5.2f) Pille(sag("Los geht’s"), fertig)
         }
     }
 }
@@ -180,7 +180,7 @@ internal fun KurzIntro(fertig: () -> Unit, ton: Boolean = false) {
                 modifier = Modifier.graphicsLayer { alpha = fenster(0.85f, 1.2f); translationY = (1f - fenster(0.85f, 1.2f)) * 16f },
             )
             Text(
-                "Liest zuerst. Für dich.", style = Schrift.TextKlein, color = c.tinteLeise,
+                sag("Liest zuerst. Für dich."), style = Schrift.TextKlein, color = c.tinteLeise,
                 modifier = Modifier.padding(top = 8.dp).graphicsLayer { alpha = fenster(1.05f, 1.4f) },
             )
         }

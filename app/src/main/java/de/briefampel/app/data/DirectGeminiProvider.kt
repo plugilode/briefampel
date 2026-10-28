@@ -33,9 +33,9 @@ internal class DirectGeminiProvider(
 ) : LlmProvider {
     private class Ueberlastet(val code: Int) : Exception()
 
-    override suspend fun analyze(input: LetterInput, today: LocalDate): LetterAnalysis {
-        val apiKey = key() ?: error("Kein Gemini-API-Schlüssel gespeichert. Bitte in den Einstellungen unter „Gemini-API-Schlüssel“ einen Schlüssel hinterlegen.")
-        val payload = payload(input, Prompts.analysisRules, Prompts.analysis(today), json = true)
+    override suspend fun analyze(input: LetterInput, today: LocalDate, sprache: Sprache): LetterAnalysis {
+        val apiKey = key() ?: error(tr("Kein Gemini-API-Schlüssel gespeichert. Bitte in den Einstellungen unter „Gemini-API-Schlüssel“ einen Schlüssel hinterlegen."))
+        val payload = payload(input, Prompts.analysisRules(sprache), Prompts.analysis(today), json = true)
         var raw: String? = null
         for ((index, modell) in modelle.withIndex()) {
             try {
@@ -45,12 +45,12 @@ internal class DirectGeminiProvider(
                 if (index == modelle.lastIndex) checkStatus(e.code)
             }
         }
-        val response = JSONObject(raw ?: error("Keine Antwort erhalten. Bitte nochmal versuchen."))
+        val response = JSONObject(raw ?: error(tr("Keine Antwort erhalten. Bitte nochmal versuchen.")))
         checkFinish(response)
-        return AnalysisJson.parse(responseText(response).ifBlank { error("Keine lesbare Analyse erhalten. Bitte nochmal versuchen.") })
+        return AnalysisJson.parse(responseText(response).ifBlank { error(tr("Keine lesbare Analyse erhalten. Bitte nochmal versuchen.")) })
     }
     override fun draft(input: LetterInput, analysis: LetterAnalysis, keywords: String, tone: Tone, sender: Sender, today: LocalDate): Flow<String> = callbackFlow {
-        val apiKey = key() ?: error("Kein Gemini-API-Schlüssel gespeichert. Bitte in den Einstellungen unter „Gemini-API-Schlüssel“ einen Schlüssel hinterlegen.")
+        val apiKey = key() ?: error(tr("Kein Gemini-API-Schlüssel gespeichert. Bitte in den Einstellungen unter „Gemini-API-Schlüssel“ einen Schlüssel hinterlegen."))
         val payload = payload(input, Prompts.draftRules, Prompts.draft(analysis, keywords, tone, sender, today), json = false)
         var aktuell: Call? = null
         fun starte(index: Int) {
@@ -64,7 +64,7 @@ internal class DirectGeminiProvider(
                         if (it.code in UEBERLASTET && index < modelle.lastIndex) { starte(index + 1); return }
                         checkStatus(it.code)
                         val full = StringBuilder()
-                        val body = it.body ?: error("Keine Antwort erhalten. Bitte nochmal versuchen.")
+                        val body = it.body ?: error(tr("Keine Antwort erhalten. Bitte nochmal versuchen."))
                         consumeSse(body.charStream().buffered()) { data ->
                             val part = JSONObject(data).optJSONArray("candidates")?.optJSONObject(0)?.optJSONObject("content")?.optJSONArray("parts") ?: return@consumeSse
                             val text = (0 until part.length()).mapNotNull { part.optJSONObject(it) }.filterNot { it.optBoolean("thought", false) }.joinToString("") { it.optString("text", "") }
@@ -94,7 +94,7 @@ internal class DirectGeminiProvider(
                     response.use {
                         if (it.code in UEBERLASTET) throw Ueberlastet(it.code)
                         checkStatus(it.code)
-                        val body = it.body ?: error("Keine Antwort erhalten. Bitte nochmal versuchen.")
+                        val body = it.body ?: error(tr("Keine Antwort erhalten. Bitte nochmal versuchen."))
                         val rawResponse = body.string()
                         if (continuation.isActive) continuation.resume(rawResponse)
                     }
@@ -137,20 +137,20 @@ internal class DirectGeminiProvider(
         response.optJSONObject("error")?.let { checkStatus(it.optInt("code", 500)) }
         val reason = response.optJSONArray("candidates")?.optJSONObject(0)?.optString("finishReason").orEmpty()
         when {
-            reason == "MAX_TOKENS" -> error("Wurde abgeschnitten. Weniger Stichworte probieren.")
-            reason.isNotBlank() && reason != "STOP" -> error("Gemini konnte diesen Inhalt nicht verarbeiten. Bitte den Brief prüfen.")
-            response.optJSONObject("promptFeedback")?.optString("blockReason").orEmpty().isNotBlank() -> error("Gemini konnte diesen Inhalt nicht verarbeiten. Bitte den Brief prüfen.")
+            reason == "MAX_TOKENS" -> error(tr("Wurde abgeschnitten. Weniger Stichworte probieren."))
+            reason.isNotBlank() && reason != "STOP" -> error(tr("Gemini konnte diesen Inhalt nicht verarbeiten. Bitte den Brief prüfen."))
+            response.optJSONObject("promptFeedback")?.optString("blockReason").orEmpty().isNotBlank() -> error(tr("Gemini konnte diesen Inhalt nicht verarbeiten. Bitte den Brief prüfen."))
         }
     }
 
     internal fun checkStatus(code: Int) {
         if (code in 200..299) return
         error(when (code) {
-            400 -> "Gemini hat die Anfrage abgelehnt. Bitte Brief, Modell und API-Schlüssel prüfen."
-            401, 403 -> "Der Gemini-Schlüssel wurde nicht akzeptiert. Bitte Schlüssel und API-Berechtigung prüfen."
-            404 -> "Das Gemini-Modell ist für dein API-Projekt nicht verfügbar. Bitte die Modellkonfiguration prüfen."
-            429 -> "Gemini-Limit erreicht. Bitte dein API-Kontingent prüfen oder später erneut versuchen."
-            500, 502, 503, 504 -> "Gemini ist gerade überlastet. Das geht meist schnell vorbei – bitte in ein paar Sekunden nochmal tippen."
+            400 -> tr("Gemini hat die Anfrage abgelehnt. Bitte Brief, Modell und API-Schlüssel prüfen.")
+            401, 403 -> tr("Der Gemini-Schlüssel wurde nicht akzeptiert. Bitte Schlüssel und API-Berechtigung prüfen.")
+            404 -> tr("Das Gemini-Modell ist für dein API-Projekt nicht verfügbar. Bitte die Modellkonfiguration prüfen.")
+            429 -> tr("Gemini-Limit erreicht. Bitte dein API-Kontingent prüfen oder später erneut versuchen.")
+            500, 502, 503, 504 -> tr("Gemini ist gerade überlastet. Das geht meist schnell vorbei – bitte in ein paar Sekunden nochmal tippen.")
             else -> "Gemini ist gerade nicht erreichbar (HTTP $code). Bitte später erneut versuchen."
         })
     }

@@ -48,27 +48,27 @@ internal fun VerlaufAnsicht(s: UiState, model: BriefampelViewModel) {
     var allesLoeschen by remember { mutableStateOf(false) }
     val heute = LocalDate.now(zone)
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).padding(bottom = 24.dp)) {
-        Eyebrow("MEINE BRIEFE · NUR AUF DIESEM HANDY", modifier = Modifier.padding(top = 4.dp))
-        Text("Alles, was ich\nfür dich gelesen\nhabe.", style = Schrift.Anzeige.copy(fontSize = 34.sp, lineHeight = 35.sp), color = c.tinte, modifier = Modifier.padding(top = 14.dp))
+        Eyebrow(sag("MEINE BRIEFE · NUR AUF DIESEM HANDY"), modifier = Modifier.padding(top = 4.dp))
+        Text(sag("Alles, was ich\nfür dich gelesen\nhabe."), style = Schrift.Anzeige.copy(fontSize = 34.sp, lineHeight = 35.sp), color = c.tinte, modifier = Modifier.padding(top = 14.dp))
         Text(
-            if (s.verlauf.isEmpty()) "Noch leer." else "${s.verlauf.size} ${if (s.verlauf.size == 1) "Brief" else "Briefe"} · verschlüsselt gespeichert · Originale werden nicht aufbewahrt",
+            when (s.verlauf.size) { 0 -> sag("Noch leer."); 1 -> sag("1 Brief · verschlüsselt gespeichert · Originale werden nicht aufbewahrt"); else -> sag("%d Briefe · verschlüsselt gespeichert · Originale werden nicht aufbewahrt", s.verlauf.size) },
             style = Schrift.TextKlein, color = c.tinteLeise, modifier = Modifier.padding(top = 12.dp),
         )
         Spacer(Modifier.height(24.dp))
         if (s.verlauf.isEmpty()) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                AmpelFreundin(Stimmung.WARTET, "Briefampel wartet auf deinen ersten Brief", lampe = 30.dp)
+                AmpelFreundin(Stimmung.WARTET, sag("Briefampel wartet auf deinen ersten Brief"), lampe = 30.dp)
                 Spacer(Modifier.width(18.dp))
-                Text("Sobald ich einen Brief für dich geprüft habe, liegt er hier – mit Ampel, Frist und deinen Antworten.", style = Schrift.Text, color = c.tinteLeise, modifier = Modifier.weight(1f))
+                Text(sag("Sobald ich einen Brief für dich geprüft habe, liegt er hier – mit Ampel, Frist und deinen Antworten."), style = Schrift.Text, color = c.tinteLeise, modifier = Modifier.weight(1f))
             }
             Spacer(Modifier.height(24.dp))
-            Pille("Brief prüfen", model::back, symbol = Symbole.Scannen)
+            Pille(sag("Brief prüfen"), model::back, symbol = Symbole.Scannen)
         } else {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 s.verlauf.forEach { e -> Eintrag(e, heute) { model.eintragOeffnen(e.id) } }
             }
             Text(
-                "Alle Briefe löschen", style = Schrift.KnopfKlein, color = c.rotText, textAlign = TextAlign.Center,
+                sag("Alle Briefe löschen"), style = Schrift.KnopfKlein, color = c.rotText, textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth().padding(top = 18.dp).clip(CircleShape)
                     .selectable(false, role = Role.Button) { allesLoeschen = true }.padding(vertical = 14.dp),
             )
@@ -76,10 +76,10 @@ internal fun VerlaufAnsicht(s: UiState, model: BriefampelViewModel) {
     }
     if (allesLoeschen) AlertDialog(
         onDismissRequest = { allesLoeschen = false },
-        title = { Text("Alle Briefe löschen?") },
-        text = { Text("Alle ${s.verlauf.size} geprüften Briefe und deine Antworten verschwinden von diesem Handy. Das lässt sich nicht rückgängig machen.") },
-        confirmButton = { TextButton(onClick = { allesLoeschen = false; model.verlaufLoeschen() }) { Text("Alles löschen", color = c.rotText) } },
-        dismissButton = { TextButton(onClick = { allesLoeschen = false }) { Text("Behalten", color = c.tinte) } },
+        title = { Text(sag("Alle Briefe löschen?")) },
+        text = { Text(sag("Alle %d geprüften Briefe und deine Antworten verschwinden von diesem Handy. Das lässt sich nicht rückgängig machen.", s.verlauf.size)) },
+        confirmButton = { TextButton(onClick = { allesLoeschen = false; model.verlaufLoeschen() }) { Text(sag("Alles löschen"), color = c.rotText) } },
+        dismissButton = { TextButton(onClick = { allesLoeschen = false }) { Text(sag("Behalten"), color = c.tinte) } },
         containerColor = c.flaeche, titleContentColor = c.tinte, textContentColor = c.tinteLeise,
     )
 }
@@ -100,9 +100,9 @@ private fun Eintrag(e: VerlaufEintrag, heute: LocalDate, oeffnen: () -> Unit) {
                 }
                 val frist = a.frist?.datum
                 val zeilen = listOfNotNull(
-                    "geprüft ${tagDes(e.geprueftAm).format(DateTimeFormatter.ofPattern("dd.MM."))}",
-                    frist?.let { "Frist ${Fristen.restText(it, heute)}" },
-                    e.antworten.size.takeIf { it > 0 }?.let { "$it ${if (it == 1) "Antwort" else "Antworten"}" },
+                    sag("geprüft %s", tagDes(e.geprueftAm).format(DateTimeFormatter.ofPattern("dd.MM."))),
+                    frist?.let { sag("Frist %s", Fristen.restText(it, heute, LocalSprache.current)) },
+                    e.antworten.size.takeIf { it > 0 }?.let { if (it == 1) sag("1 Antwort") else sag("%d Antworten", it) },
                 )
                 Text(
                     zeilen.joinToString(" · "), style = Schrift.TextKlein,
@@ -120,15 +120,15 @@ internal fun GespeicherteAntworten(antworten: List<GespeicherteAntwort>, kopiere
     val c = LocalFarben.current
     val datum = DateTimeFormatter.ofPattern("dd.MM.yyyy, HH:mm")
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Eyebrow("DEINE ANTWORTEN · ${antworten.size}")
+        Eyebrow(sag("DEINE ANTWORTEN · %d", antworten.size))
         antworten.asReversed().forEach { a ->
             Surface(color = c.papier, shape = RoundedCornerShape(6.dp), shadowElevation = 8.dp) {
                 Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("${a.ton.uppercase()} · ${Instant.ofEpochMilli(a.am).atZone(zone).format(datum)}", style = Schrift.Marke, color = c.aufPapier.copy(alpha = 0.6f))
+                    Text("${sag(a.ton).uppercase(LocalSprache.current.locale)} · ${Instant.ofEpochMilli(a.am).atZone(zone).format(datum)}", style = Schrift.Marke, color = c.aufPapier.copy(alpha = 0.6f))
                     Text(a.text, style = Schrift.Text.copy(fontSize = 15.sp, lineHeight = 22.sp), color = c.aufPapier, maxLines = 8, overflow = TextOverflow.Ellipsis)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        KleinKnopf("Kopieren", Symbole.Kopieren) { kopieren(a.text) }
-                        KleinKnopf("Teilen", Symbole.Teilen) { teilen(a.text) }
+                        KleinKnopf(sag("Kopieren"), Symbole.Kopieren) { kopieren(a.text) }
+                        KleinKnopf(sag("Teilen"), Symbole.Teilen) { teilen(a.text) }
                     }
                 }
             }

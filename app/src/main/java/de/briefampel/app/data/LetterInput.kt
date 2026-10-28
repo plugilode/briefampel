@@ -1,5 +1,6 @@
 package de.briefampel.app.data
 
+import de.briefampel.app.domain.tr
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -51,7 +52,7 @@ class InputReader(private val context: Context) {
                 output.write(buffer, 0, read)
             }
             output.toByteArray()
-        } ?: error("Eine Datei konnte nicht gelesen werden. Andere Datei probieren.")
+        } ?: error(tr("Eine Datei konnte nicht gelesen werden. Andere Datei probieren."))
         require(bytes.isNotEmpty()) { "Die Datei ist leer." }
         when {
             mime == "application/pdf" || bytes.take(5).toByteArray().toString(Charsets.US_ASCII) == "%PDF-" -> {
@@ -60,7 +61,7 @@ class InputReader(private val context: Context) {
                 Attachment(uri.toString(), name, "application/pdf", bytes, pages)
             }
             mime in listOf("image/png", "image/jpeg", "image/webp") -> Attachment(uri.toString(), name, "image/jpeg", normalize(bytes), 1)
-            else -> error("Dieses Format wird nicht unterstützt. PDF, PNG, JPEG oder WebP auswählen.")
+            else -> error(tr("Dieses Format wird nicht unterstützt. PDF, PNG, JPEG oder WebP auswählen."))
         }
     }
 

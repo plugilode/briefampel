@@ -27,7 +27,7 @@ class BriefampelViewModelTest {
     @Before fun setup() {
         Dispatchers.setMain(dispatcher)
         app = RuntimeEnvironment.getApplication()
-        app.getSharedPreferences("briefampel_private", Context.MODE_PRIVATE).edit().clear().commit()
+        app.getSharedPreferences("briefampel_private", Context.MODE_PRIVATE).edit().clear().putString("sprache", "de").commit()
         fake = FakeProvider()
         model = BriefampelViewModel(app, fake, configured = true, zugang = OffenerZugang, verlauf = FluechtigerVerlauf())
     }
@@ -202,7 +202,7 @@ internal class FakeProvider(private val streamDelay: Long = 1000) : LlmProvider 
     var analyses = 0
     var drafts = 0
     var fail = false
-    override suspend fun analyze(input: LetterInput, today: LocalDate): LetterAnalysis {
+    override suspend fun analyze(input: LetterInput, today: LocalDate, sprache: Sprache): LetterAnalysis {
         analyses++
         if (fail) error("Testfehler")
         return Beispiele.fuer(Ampel.ROT, today).analyse

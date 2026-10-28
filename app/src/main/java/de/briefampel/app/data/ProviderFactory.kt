@@ -17,7 +17,7 @@ fun createLlmProvider(context: Context): LlmProvider {
         private val keys = PersonalKeyStore(context)
         private val direct by lazy { DirectGeminiProvider(key = { keys.read() }) }
 
-        override suspend fun analyze(input: LetterInput, today: LocalDate) = direct.analyze(input, today)
+        override suspend fun analyze(input: LetterInput, today: LocalDate, sprache: Sprache) = direct.analyze(input, today, sprache)
         override fun draft(input: LetterInput, analysis: LetterAnalysis, keywords: String, tone: Tone, sender: Sender, today: LocalDate) =
             direct.draft(input, analysis, keywords, tone, sender, today)
     }

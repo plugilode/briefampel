@@ -16,6 +16,10 @@ class LocalStore(context: Context) {
     var introTon: Boolean
         get() = prefs.getBoolean("intro_ton", true)
         set(value) { prefs.edit().putBoolean("intro_ton", value).apply() }
+    /** Gewählte Sprache ("de", "en", "es"); null, solange beim ersten Start noch nicht gewählt. */
+    var sprache: String?
+        get() = prefs.getString("sprache", null)
+        set(value) { prefs.edit().putString("sprache", value).apply() }
     var dark: Boolean
         get() = prefs.getBoolean("dark", true)
         set(value) { prefs.edit().putBoolean("dark", value).apply() }
