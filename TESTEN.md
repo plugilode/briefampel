@@ -32,6 +32,18 @@ SHA-256: `5c3826f0151ec1ebd8a3dc4e8916bec119f82912062edbbdd8689a4254050309`
 - [ ] **Hell/Dunkel** (Einstellungen) und große Schrift (Android-Einstellungen) sehen ordentlich aus, nichts wird abgeschnitten.
 - [ ] Mit „Animationen entfernen“ (Android → Bedienungshilfen) steht alles still, und die Lampe leuchtet trotzdem.
 
+## Sperre und Verlauf
+
+- [ ] Nach dem Intro: 6-stellige PIN festlegen, bestätigen, dann „Ja, gern“ für Fingerabdruck/Gesicht.
+- [ ] App schließen und neu öffnen: Die Biometrie-Abfrage kommt von selbst, „PIN eingeben“ führt zum Ziffernblock.
+- [ ] Falsche PIN: Die Punkte wackeln und eine Meldung erscheint. Nach 5 Fehlversuchen kommt eine 30-Sekunden-Pause.
+- [ ] Länger als eine Minute in einer anderen App, dann zurück: Die App ist wieder gesperrt.
+- [ ] Einen eigenen Brief prüfen und eine Antwort schreiben, dann das Uhr-Symbol oben: Der Brief steht im Verlauf, mit Frist und „1 Antwort“.
+- [ ] Eintrag öffnen: Ergebnis und gespeicherte Antwort mit Kopieren und Teilen. Das Original ist bewusst nicht gespeichert.
+- [ ] „Aus dem Verlauf löschen“ und „Ganzen Verlauf löschen“ fragen vorher nach.
+- [ ] Beispiele landen nicht im Verlauf.
+- [ ] „PIN vergessen?“ löscht nach Rückfrage PIN und Verlauf.
+
 ## 3. Mit echter KI testen (eigener Gemini-Schlüssel)
 
 1. Der Schlüssel aus `local.properties` (`briefampel.geminiKey=…`) ist in der Test-APK schon eingebaut und wird beim ersten Start übernommen. Nichts eintippen nötig.

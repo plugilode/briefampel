@@ -28,41 +28,40 @@ internal class DirectGeminiProvider(
         .readTimeout(90, TimeUnit.SECONDS).callTimeout(120, TimeUnit.SECONDS)
         .retryOnConnectionFailure(false).followRedirects(false).followSslRedirects(false).build(),
     private val baseUrl: String = "https://generativelanguage.googleapis.com/v1beta/",
+    /** Hauptmodell, dann genau ein Ausweichmodell, falls Google das erste als überlastet meldet. Keine Schleife. */
+    private val modelle: List<String> = listOf(BuildConfig.AI_MODEL, BuildConfig.AI_MODEL_FALLBACK).filter { it.isNotBlank() }.distinct(),
 ) : LlmProvider {
+    private class Ueberlastet(val code: Int) : Exception()
+
     override suspend fun analyze(input: LetterInput, today: LocalDate): LetterAnalysis {
         val apiKey = key() ?: error("Kein Gemini-API-Schlüssel gespeichert. Bitte in den Einstellungen unter „Gemini-API-Schlüssel“ einen Schlüssel hinterlegen.")
-        val request = request(apiKey, payload(input, Prompts.analysisRules, Prompts.analysis(today), json = true), streaming = false)
-        val raw = suspendCancellableCoroutine<String> { continuation ->
-            val call = client.newCall(request)
-            continuation.invokeOnCancellation { call.cancel() }
-            call.enqueue(object : Callback {
-                override fun onFailure(call: Call, e: IOException) {
-                    if (continuation.isActive) continuation.resumeWithException(e)
-                }
-                override fun onResponse(call: Call, response: Response) {
-                    try {
-                        response.use {
-                            checkStatus(it.code)
-                            val body = it.body ?: error("Keine Antwort erhalten. Bitte nochmal versuchen.")
-                            val rawResponse = body.string()
-                            if (continuation.isActive) continuation.resume(rawResponse)
-                        }
-                    } catch (e: Exception) { if (continuation.isActive) continuation.resumeWithException(e) }
-                }
-            })
+        val payload = payload(input, Prompts.analysisRules, Prompts.analysis(today), json = true)
+        var raw: String? = null
+        for ((index, modell) in modelle.withIndex()) {
+            try {
+                raw = abrufen(request(apiKey, payload, streaming = false, modell))
+                break
+            } catch (e: Ueberlastet) {
+                if (index == modelle.lastIndex) checkStatus(e.code)
+            }
         }
-        val response = JSONObject(raw)
+        val response = JSONObject(raw ?: error("Keine Antwort erhalten. Bitte nochmal versuchen."))
         checkFinish(response)
         return AnalysisJson.parse(responseText(response).ifBlank { error("Keine lesbare Analyse erhalten. Bitte nochmal versuchen.") })
     }
     override fun draft(input: LetterInput, analysis: LetterAnalysis, keywords: String, tone: Tone, sender: Sender, today: LocalDate): Flow<String> = callbackFlow {
         val apiKey = key() ?: error("Kein Gemini-API-Schlüssel gespeichert. Bitte in den Einstellungen unter „Gemini-API-Schlüssel“ einen Schlüssel hinterlegen.")
-        val call = client.newCall(request(apiKey, payload(input, Prompts.draftRules, Prompts.draft(analysis, keywords, tone, sender, today), json = false), streaming = true))
-        call.enqueue(object : Callback {
+        val payload = payload(input, Prompts.draftRules, Prompts.draft(analysis, keywords, tone, sender, today), json = false)
+        var aktuell: Call? = null
+        fun starte(index: Int) {
+            val call = client.newCall(request(apiKey, payload, streaming = true, modelle[index]))
+            aktuell = call
+            call.enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) { close(e) }
             override fun onResponse(call: Call, response: Response) {
                 try {
                     response.use {
+                        if (it.code in UEBERLASTET && index < modelle.lastIndex) { starte(index + 1); return }
                         checkStatus(it.code)
                         val full = StringBuilder()
                         val body = it.body ?: error("Keine Antwort erhalten. Bitte nochmal versuchen.")
@@ -77,12 +76,35 @@ internal class DirectGeminiProvider(
                     }
                 } catch (e: Exception) { close(e) }
             }
-        })
-        awaitClose { call.cancel() }
+            })
+        }
+        starte(0)
+        awaitClose { aktuell?.cancel() }
     }
 
-    private fun request(apiKey: String, payload: JSONObject, streaming: Boolean): Request {
-        val url = baseUrl + if (streaming) "models/${BuildConfig.AI_MODEL}:streamGenerateContent?alt=sse" else "models/${BuildConfig.AI_MODEL}:generateContent"
+    private suspend fun abrufen(request: Request): String = suspendCancellableCoroutine { continuation ->
+        val call = client.newCall(request)
+        continuation.invokeOnCancellation { call.cancel() }
+        call.enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                if (continuation.isActive) continuation.resumeWithException(e)
+            }
+            override fun onResponse(call: Call, response: Response) {
+                try {
+                    response.use {
+                        if (it.code in UEBERLASTET) throw Ueberlastet(it.code)
+                        checkStatus(it.code)
+                        val body = it.body ?: error("Keine Antwort erhalten. Bitte nochmal versuchen.")
+                        val rawResponse = body.string()
+                        if (continuation.isActive) continuation.resume(rawResponse)
+                    }
+                } catch (e: Exception) { if (continuation.isActive) continuation.resumeWithException(e) }
+            }
+        })
+    }
+
+    private fun request(apiKey: String, payload: JSONObject, streaming: Boolean, modell: String): Request {
+        val url = baseUrl + if (streaming) "models/$modell:streamGenerateContent?alt=sse" else "models/$modell:generateContent"
         return Request.Builder()
             .url(url)
             .header("x-goog-api-key", apiKey)
@@ -92,6 +114,9 @@ internal class DirectGeminiProvider(
     }
 
     companion object {
+        /** Serverseitige Überlastung bei Google: lohnt einen einmaligen Versuch mit dem Ausweichmodell. */
+        private val UEBERLASTET = setOf(500, 502, 503, 504)
+
         internal fun payload(input: LetterInput, rules: String, prompt: String, json: Boolean): JSONObject {
         val parts = JSONArray()
         parts.put(JSONObject().put("text", prompt))
@@ -125,6 +150,7 @@ internal class DirectGeminiProvider(
             401, 403 -> "Der Gemini-Schlüssel wurde nicht akzeptiert. Bitte Schlüssel und API-Berechtigung prüfen."
             404 -> "Das Gemini-Modell ist für dein API-Projekt nicht verfügbar. Bitte die Modellkonfiguration prüfen."
             429 -> "Gemini-Limit erreicht. Bitte dein API-Kontingent prüfen oder später erneut versuchen."
+            500, 502, 503, 504 -> "Gemini ist gerade überlastet. Das geht meist schnell vorbei – bitte in ein paar Sekunden nochmal tippen."
             else -> "Gemini ist gerade nicht erreichbar (HTTP $code). Bitte später erneut versuchen."
         })
     }

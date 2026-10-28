@@ -20,7 +20,8 @@ import java.time.LocalDate
 import java.time.ZoneId
 import android.os.SystemClock
 
-enum class Screen { INPUT, RESULT, REPLY }
+enum class Screen { INPUT, RESULT, REPLY, VERLAUF }
+enum class Sperre { OFFEN, EINRICHTEN, GESPERRT }
 enum class Sheet { CONSENT, PASTE, SETTINGS, PRIVACY, ORIGINAL }
 
 data class UiState(
@@ -47,6 +48,13 @@ data class UiState(
     val apiMessage: String? = null,
     val showIntro: Boolean = false,
     val checkedAt: String = "",
+    val sperre: Sperre = Sperre.OFFEN,
+    val biometrie: Boolean = false,
+    val pinMeldung: String? = null,
+    val verlauf: List<VerlaufEintrag> = emptyList(),
+    /** Verlaufseintrag des gerade gezeigten Ergebnisses; Antworten werden dort abgelegt. */
+    val eintragId: String? = null,
+    val ausVerlauf: Boolean = false,
 )
 
 class BriefampelViewModel @JvmOverloads constructor(
@@ -55,6 +63,8 @@ class BriefampelViewModel @JvmOverloads constructor(
     private val configured: Boolean? = null,
     private val personalApi: PersonalApi = createPersonalApi(application),
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
+    private val zugang: Zugang = ZugangsSpeicher(application),
+    private val verlauf: Verlauf = VerlaufSpeicher(application),
 ) : AndroidViewModel(application) {
     private val store = LocalStore(application)
     val inputReader = InputReader(application)
@@ -63,12 +73,115 @@ class BriefampelViewModel @JvmOverloads constructor(
     private val mutable = MutableStateFlow(UiState(sender = store.sender, dark = store.dark, consent = store.consent,
         configured = isConfigured(), personalApi = personalApi.configured, personalApiSupported = personalApi.supported,
         showIntro = !store.introSeen,
-        remaining = store.usage.remaining(today().toString())))
+        remaining = store.usage.remaining(today().toString()),
+        sperre = when { !zugang.aktiv -> Sperre.OFFEN; !zugang.eingerichtet -> Sperre.EINRICHTEN; else -> Sperre.GESPERRT },
+        biometrie = zugang.biometrie))
     val state = mutable.asStateFlow()
     private var work: Job? = null
     private var workSerial = 0
     private var cached: Triple<String, Long, LetterAnalysis>? = null
     private var afterConsent = false
+    /** Fingerabdruck der zuletzt gespeicherten Prüfung, damit ein Cache-Treffer keinen doppelten Eintrag erzeugt. */
+    private var gespeichert: Pair<String, String>? = null
+
+    /** Gespeichert wird erst nach dem Laden, sonst könnte ein früher Eintrag den alten Verlauf überschreiben. */
+    private var ladenFehlgeschlagen = false
+    /** Nach „alles löschen“ darf ein noch laufendes Laden nichts zurückbringen. */
+    private var verworfen = false
+    private val laden: Job = viewModelScope.launch {
+        val geladen = try { withContext(ioDispatcher) { verlauf.lade() } } catch (cancel: CancellationException) { throw cancel } catch (_: Exception) { null }
+        if (geladen == null) {
+            ladenFehlgeschlagen = true
+            error("Der Verlauf konnte nicht geöffnet werden. Neue Einträge werden vorerst nicht gespeichert.")
+        } else if (!verworfen) {
+            // Einträge, die schon vor dem Laden entstanden sind, bleiben vorne erhalten.
+            mutable.update { s -> s.copy(verlauf = s.verlauf + geladen.filter { g -> s.verlauf.none { it.id == g.id } }) }
+        }
+    }
+
+    // ---------------------------------------------------------------- Sperre
+
+    fun pinEinrichten(pin: String) {
+        if (!istGueltigePin(pin)) { mutable.update { it.copy(pinMeldung = "Die PIN braucht genau 6 Ziffern.") }; return }
+        try { zugang.setzePin(pin) } catch (_: Exception) { mutable.update { it.copy(pinMeldung = "Die PIN konnte nicht gespeichert werden.") }; return }
+        mutable.update { it.copy(sperre = Sperre.OFFEN, pinMeldung = null) }
+    }
+
+    fun biometrie(an: Boolean) { zugang.biometrie = an; mutable.update { it.copy(biometrie = an) } }
+
+    fun pinPruefen(pin: String) {
+        when (val ergebnis = zugang.pruefePin(pin)) {
+            PinErgebnis.Richtig -> mutable.update { it.copy(sperre = Sperre.OFFEN, pinMeldung = null) }
+            is PinErgebnis.Falsch -> mutable.update { it.copy(pinMeldung = "Falsche PIN. Noch ${ergebnis.versucheBisPause} ${if (ergebnis.versucheBisPause == 1) "Versuch" else "Versuche"} bis zur Pause.") }
+            is PinErgebnis.Pause -> mutable.update { it.copy(pinMeldung = "Zu viele Versuche. Bitte ${ergebnis.sekunden} Sekunden warten.") }
+        }
+    }
+
+    fun entsperrt() { if (state.value.sperre == Sperre.GESPERRT) mutable.update { it.copy(sperre = Sperre.OFFEN, pinMeldung = null) } }
+
+    fun sperren() {
+        if (!zugang.aktiv || !zugang.eingerichtet || state.value.sperre != Sperre.OFFEN) return
+        if (state.value.writing) stop()
+        mutable.update { it.copy(sperre = Sperre.GESPERRT, sheet = null, pinMeldung = null) }
+    }
+
+    /** PIN vergessen: Sperre und Verlauf werden gelöscht, denn ohne PIN darf niemand an die alten Briefe. */
+    fun pinVergessen() {
+        zugang.zuruecksetzen()
+        gespeichert = null
+        mutable.update { it.copy(sperre = Sperre.EINRICHTEN, biometrie = false, pinMeldung = null, verlauf = emptyList(), eintragId = null, ausVerlauf = false,
+            screen = Screen.INPUT, result = null, reply = "", keywords = "") }
+        verworfen = true
+        verlaufSichern(emptyList(), ersetzen = true)
+    }
+
+    // ---------------------------------------------------------------- Verlauf
+
+    fun verlaufOeffnen() { mutable.update { it.copy(screen = Screen.VERLAUF, sheet = null, error = null) } }
+
+    fun eintragOeffnen(id: String) {
+        val eintrag = state.value.verlauf.firstOrNull { it.id == id } ?: return
+        mutable.update { it.copy(screen = Screen.RESULT, result = GepruefterBrief(eintrag.analyse, "", eintrag.seiten), example = false,
+            input = LetterInput(), ausVerlauf = true, eintragId = id, reply = "", keywords = "", tone = Tone.SACHLICH, error = null) }
+    }
+
+    fun eintragLoeschen(id: String) {
+        val neu = state.value.verlauf.filterNot { it.id == id }
+        if (gespeichert?.second == id) gespeichert = null
+        mutable.update {
+            if (it.eintragId == id) it.copy(verlauf = neu, eintragId = null, ausVerlauf = false, screen = Screen.VERLAUF, result = null, reply = "")
+            else it.copy(verlauf = neu)
+        }
+        verlaufSichern(neu)
+    }
+
+    fun verlaufLoeschen() {
+        gespeichert = null
+        mutable.update { it.copy(verlauf = emptyList(), eintragId = null, ausVerlauf = false) }
+        verworfen = true
+        verlaufSichern(emptyList(), ersetzen = true)
+    }
+
+    /** Schreibt den aktuellen Stand, sobald der Verlauf geladen ist. Nach einem Ladefehler wird nichts überschrieben. */
+    private fun verlaufSichern(@Suppress("UNUSED_PARAMETER") liste: List<VerlaufEintrag>, ersetzen: Boolean = false) {
+        viewModelScope.launch {
+            laden.join()
+            if (ladenFehlgeschlagen && !ersetzen) return@launch
+            try { withContext(ioDispatcher) { verlauf.speichere(state.value.verlauf) } }
+            catch (cancel: CancellationException) { throw cancel }
+            catch (_: Exception) { error("Der Verlauf konnte nicht gespeichert werden.") }
+        }
+    }
+
+    private fun antwortMerken(text: String, ton: Tone) {
+        val id = state.value.eintragId ?: return
+        if (text.isBlank() || state.value.example) return
+        val neu = state.value.verlauf.map { e ->
+            if (e.id == id) e.copy(antworten = e.antworten + GespeicherteAntwort(text, ton.label, System.currentTimeMillis())) else e
+        }
+        mutable.update { it.copy(verlauf = neu) }
+        verlaufSichern(neu)
+    }
 
     fun sheet(sheet: Sheet?) { mutable.update { it.copy(sheet = sheet, error = null) }; if (sheet == null) afterConsent = false }
     fun error(text: String) { mutable.update { it.copy(error = text) } }
@@ -152,8 +265,16 @@ class BriefampelViewModel @JvmOverloads constructor(
     }
 
     private fun showAnalysis(analysis: LetterAnalysis, input: LetterInput) {
+        val fingerabdruck = input.fingerprint()
+        val vorhanden = gespeichert?.takeIf { it.first == fingerabdruck && state.value.verlauf.any { e -> e.id == it.second } }?.second
+        val id = vorhanden ?: java.util.UUID.randomUUID().toString()
+        val liste = if (vorhanden != null) state.value.verlauf
+            else listOf(VerlaufEintrag(id, System.currentTimeMillis(), analysis, input.pages)) + state.value.verlauf
+        gespeichert = fingerabdruck to id
         mutable.update { it.copy(screen = Screen.RESULT, result = GepruefterBrief(analysis, input.text, input.pages), example = false,
-            reply = "", keywords = "", tone = Tone.SACHLICH, sheet = null, remaining = store.usage.remaining(today().toString())) }
+            reply = "", keywords = "", tone = Tone.SACHLICH, sheet = null, remaining = store.usage.remaining(today().toString()),
+            verlauf = liste, eintragId = id, ausVerlauf = false) }
+        if (vorhanden == null) verlaufSichern(liste)
     }
 
     fun consent() {
@@ -181,23 +302,37 @@ class BriefampelViewModel @JvmOverloads constructor(
                 provider.draft(s.input, s.result.analyse, s.keywords, s.tone, s.sender, today()).collect { text -> if (serial == workSerial) mutable.update { it.copy(reply = text) } }
             } catch (cancel: CancellationException) { throw cancel }
             catch (e: Exception) { if (serial == workSerial) error(errorMessage(e)) }
-            finally { if (serial == workSerial) mutable.update { it.copy(writing = false) } }
+            finally {
+                if (serial == workSerial) {
+                    mutable.update { it.copy(writing = false) }
+                    antwortMerken(state.value.reply, state.value.tone)
+                }
+            }
         }
     }
 
-    fun stop() { workSerial++; work?.cancel(); mutable.update { it.copy(loading = false, writing = false) } }
+    fun stop() {
+        val warSchreibend = state.value.writing
+        workSerial++; work?.cancel()
+        mutable.update { it.copy(loading = false, writing = false) }
+        // Auch ein gestoppter Entwurf bleibt erhalten, im Bildschirm und im Verlauf.
+        if (warSchreibend) antwortMerken(state.value.reply, state.value.tone)
+    }
     fun back() {
         if (state.value.showIntro) { finishIntro(); return }
         if (state.value.sheet != null) { sheet(null); return }
         if (state.value.loading || state.value.writing) { stop(); return }
         mutable.update {
-            if (it.screen == Screen.REPLY) it.copy(screen = Screen.RESULT, error = null)
-            else it.copy(screen = Screen.INPUT, result = null, example = false, error = null)
+            when {
+                it.screen == Screen.REPLY -> it.copy(screen = Screen.RESULT, error = null)
+                it.screen == Screen.RESULT && it.ausVerlauf -> it.copy(screen = Screen.VERLAUF, result = null, ausVerlauf = false, eintragId = null, reply = "", error = null)
+                else -> it.copy(screen = Screen.INPUT, result = null, example = false, ausVerlauf = false, error = null)
+            }
         }
     }
     fun newLetter() {
         stop()
-        mutable.update { it.copy(screen = Screen.INPUT, input = LetterInput(), result = null, example = false, keywords = "", reply = "", error = null) }
+        mutable.update { it.copy(screen = Screen.INPUT, input = LetterInput(), result = null, example = false, keywords = "", reply = "", error = null, eintragId = null, ausVerlauf = false) }
         cached = null
     }
 }

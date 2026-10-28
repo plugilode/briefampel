@@ -68,6 +68,31 @@ class DirectGeminiProviderTest {
         assertTrue(writing.isCancelled)
     }
 
+    @Test fun `overloaded main model falls back once to the second model`() = runBlocking {
+        val zwei = DirectGeminiProvider({ fakeKey }, client, server.url("/v1beta/").toString(), listOf("haupt", "ausweich"))
+        val analysis = """{"ampel":"gruen","titel":"Info","kurz":"Nur Info.","risiko":"Keins.","antwort_noetig":false,"empfehlung":"Ablegen."}"""
+        server.enqueue(MockResponse().setResponseCode(503).setBody("high demand"))
+        server.enqueue(MockResponse().setHeader("Content-Type", "application/json").setBody(envelope(analysis)))
+        assertEquals(Ampel.GRUEN, withTimeout(5000) { zwei.analyze(LetterInput("Info"), today) }.ampel)
+        assertTrue(server.takeRequest(2, TimeUnit.SECONDS)!!.path!!.contains("models/haupt:"))
+        assertTrue(server.takeRequest(2, TimeUnit.SECONDS)!!.path!!.contains("models/ausweich:"))
+
+        server.enqueue(MockResponse().setResponseCode(503))
+        server.enqueue(MockResponse().setHeader("Content-Type", "text/event-stream").setBody("data: ${envelope("Hallo.")}\n\n"))
+        val output = withTimeout(5000) { zwei.draft(LetterInput("Original"), Beispiele.fuer(Ampel.ROT, today).analyse, "Vertrag anfordern", Tone.SACHLICH, Sender(), today).toList() }
+        assertEquals("Hallo.", output.last())
+        assertTrue(server.takeRequest(2, TimeUnit.SECONDS)!!.path!!.contains("models/haupt:streamGenerateContent"))
+        assertTrue(server.takeRequest(2, TimeUnit.SECONDS)!!.path!!.contains("models/ausweich:streamGenerateContent"))
+    }
+
+    @Test fun `when both models are overloaded the user gets a clear message and no loop`() = runBlocking {
+        val zwei = DirectGeminiProvider({ fakeKey }, client, server.url("/v1beta/").toString(), listOf("haupt", "ausweich"))
+        repeat(2) { server.enqueue(MockResponse().setResponseCode(503)) }
+        val error = runCatching { zwei.analyze(LetterInput("Original"), today) }.exceptionOrNull()
+        assertTrue(error!!.message.orEmpty().contains("überlastet"))
+        assertEquals(2, server.requestCount)
+    }
+
     @Test fun `authentication error never echoes upstream body or key`() = runBlocking {
         server.enqueue(MockResponse().setResponseCode(403).setBody("private upstream details $fakeKey"))
         val error = runCatching { provider.analyze(LetterInput("Original"), today) }.exceptionOrNull()

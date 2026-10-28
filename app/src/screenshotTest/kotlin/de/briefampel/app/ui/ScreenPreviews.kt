@@ -66,7 +66,7 @@ private fun Capture(state: UiState, bottom: Boolean = false, sheetBottom: Boolea
             override val configured = false
             override fun save(key: String) = error("Read-only screenshot")
             override fun clear() = Unit
-        })
+        }, zugang = de.briefampel.app.data.OffenerZugang, verlauf = de.briefampel.app.data.FluechtigerVerlauf())
     }
     BriefampelTheme(dunkel = state.dark) { BriefampelLayout(state, model, initialScroll = if (bottom) Int.MAX_VALUE else 0, initialSheetScroll = if (sheetBottom) Int.MAX_VALUE else 0) }
 }
@@ -159,4 +159,29 @@ private object PreviewPreferences : SharedPreferences {
     override fun edit(): SharedPreferences.Editor = error("Read-only screenshot")
     override fun registerOnSharedPreferenceChangeListener(listener: SharedPreferences.OnSharedPreferenceChangeListener?) = Unit
     override fun unregisterOnSharedPreferenceChangeListener(listener: SharedPreferences.OnSharedPreferenceChangeListener?) = Unit
+}
+
+private fun verlaufBeispiel(): List<de.briefampel.app.data.VerlaufEintrag> {
+    val jetzt = System.currentTimeMillis()
+    return listOf(
+        de.briefampel.app.data.VerlaufEintrag("rot", jetzt - 3_600_000, Beispiele.fuer(Ampel.ROT, today()).analyse, 3,
+            listOf(de.briefampel.app.data.GespeicherteAntwort("Erika Muster\nMusterstraße 12\n50667 Köln\n\nInkasso Nordwest GmbH\n\nSehr geehrte Damen und Herren,\n\ndie von Ihnen geltend gemachte Forderung bestreite ich.", "Sachlich", jetzt - 3_000_000))),
+        de.briefampel.app.data.VerlaufEintrag("gelb", jetzt - 86_400_000 * 3, Beispiele.fuer(Ampel.GELB, today()).analyse, 1),
+        de.briefampel.app.data.VerlaufEintrag("gruen", jetzt - 86_400_000 * 9, Beispiele.fuer(Ampel.GRUEN, today()).analyse, 1),
+    )
+}
+
+@PreviewTest @Preview(name = "24_Sperre_einrichten", widthDp = 412, heightDp = 915, locale = "de", showSystemUi = true)
+@Composable fun SperreEinrichtenScreenshot() = Capture(base().copy(sperre = Sperre.EINRICHTEN))
+
+@PreviewTest @Preview(name = "25_Entsperren", widthDp = 412, heightDp = 915, locale = "de", showSystemUi = true)
+@Composable fun EntsperrenScreenshot() = Capture(base().copy(sperre = Sperre.GESPERRT, pinMeldung = "Falsche PIN. Noch 4 Versuche bis zur Pause."))
+
+@PreviewTest @Preview(name = "26_Verlauf", widthDp = 412, heightDp = 915, locale = "de", showSystemUi = true)
+@Composable fun VerlaufScreenshot() = Capture(base().copy(screen = Screen.VERLAUF, verlauf = verlaufBeispiel()))
+
+@PreviewTest @Preview(name = "27_Verlauf_Eintrag", widthDp = 412, heightDp = 915, locale = "de", showSystemUi = true)
+@Composable fun VerlaufEintragScreenshot() = verlaufBeispiel().let { v ->
+    Capture(base().copy(screen = Screen.RESULT, verlauf = v, eintragId = "rot", ausVerlauf = true,
+        result = GepruefterBrief(v[0].analyse, "", 3)), bottom = true)
 }

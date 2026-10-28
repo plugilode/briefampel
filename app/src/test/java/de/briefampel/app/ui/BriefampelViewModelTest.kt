@@ -29,7 +29,7 @@ class BriefampelViewModelTest {
         app = RuntimeEnvironment.getApplication()
         app.getSharedPreferences("briefampel_private", Context.MODE_PRIVATE).edit().clear().commit()
         fake = FakeProvider()
-        model = BriefampelViewModel(app, fake, configured = true)
+        model = BriefampelViewModel(app, fake, configured = true, zugang = OffenerZugang, verlauf = FluechtigerVerlauf())
     }
     @After fun cleanup() { model.stop(); Dispatchers.resetMain() }
 
@@ -121,13 +121,13 @@ class BriefampelViewModelTest {
         assertFalse(model.state.value.input.hasContent)
         assertNull(model.state.value.result)
         assertEquals("", model.state.value.keywords)
-        assertEquals("Testname", BriefampelViewModel(app, fake, true).state.value.sender.name)
+        assertEquals("Testname", BriefampelViewModel(app, fake, true, zugang = OffenerZugang, verlauf = FluechtigerVerlauf()).state.value.sender.name)
         model.forgetSender()
-        assertEquals(Sender(), BriefampelViewModel(app, fake, true).state.value.sender)
+        assertEquals(Sender(), BriefampelViewModel(app, fake, true, zugang = OffenerZugang, verlauf = FluechtigerVerlauf()).state.value.sender)
     }
 
     @Test fun `unconfigured builds never call provider`() = runTest(dispatcher) {
-        val unconfigured = BriefampelViewModel(app, fake, false)
+        val unconfigured = BriefampelViewModel(app, fake, false, zugang = OffenerZugang, verlauf = FluechtigerVerlauf())
         unconfigured.setText("Brief")
         unconfigured.analyze(); runCurrent()
         assertEquals(Sheet.SETTINGS, unconfigured.state.value.sheet)
@@ -156,7 +156,7 @@ class BriefampelViewModelTest {
 
     @Test fun `personal key activates Gemini without Firebase and changes require new consent`() = runTest(dispatcher) {
         val keys = FakePersonalApi()
-        val personal = BriefampelViewModel(app, fake, null, keys, dispatcher)
+        val personal = BriefampelViewModel(app, fake, null, keys, dispatcher, zugang = OffenerZugang, verlauf = FluechtigerVerlauf())
         assertFalse(personal.state.value.configured)
         personal.consent()
         personal.savePersonalKey("local-fake-key-for-tests-only"); runCurrent()
@@ -176,7 +176,7 @@ class BriefampelViewModelTest {
 
     @Test fun `storage failure keeps key unconfigured and exposes no secret in UI state`() = runTest(dispatcher) {
         val keys = FakePersonalApi(fail = true)
-        val personal = BriefampelViewModel(app, fake, null, keys, dispatcher)
+        val personal = BriefampelViewModel(app, fake, null, keys, dispatcher, zugang = OffenerZugang, verlauf = FluechtigerVerlauf())
         val secret = "local-fake-secret-not-to-display"
         personal.savePersonalKey(secret); runCurrent()
         assertFalse(personal.state.value.configured)
@@ -187,7 +187,7 @@ class BriefampelViewModelTest {
 
     @Test fun `release-like configuration cannot store a personal key`() = runTest(dispatcher) {
         val keys = FakePersonalApi(supported = false)
-        val personal = BriefampelViewModel(app, fake, false, keys, dispatcher)
+        val personal = BriefampelViewModel(app, fake, false, keys, dispatcher, zugang = OffenerZugang, verlauf = FluechtigerVerlauf())
         personal.savePersonalKey("local-fake-key-for-tests-only"); runCurrent()
         assertFalse(keys.configured)
         assertFalse(personal.state.value.personalApiSupported)

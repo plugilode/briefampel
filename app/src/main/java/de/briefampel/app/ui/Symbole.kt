@@ -24,6 +24,15 @@ object Symbole {
     val Kopieren = strich("Kopieren", "M9 9h10v12H9z", "M5 15V3h10")
     val Plus = strich("Plus", "M12 5v14M5 12h14")
     val Schliessen = strich("Schließen", "M6 6l12 12M18 6L6 18")
+    val Verlauf = strich("Verlauf", "M12 3a9 9 0 1 1 0 18a9 9 0 1 1 0-18z", "M12 7v5l3 2")
+    val Fingerabdruck = strich(
+        "Fingerabdruck",
+        "M4.5 9.5a8 8 0 0 1 15 0",
+        "M6.5 12a5.5 5.5 0 0 1 11 0c0 2.5-.5 4.5-1.5 6.5",
+        "M9 19c.8-1.6 1.2-3.4 1.2-5.5a1.8 1.8 0 0 1 3.6 0c0 1.2-.1 2.3-.4 3.4",
+    )
+    val Ruecktaste = strich("Löschen", "M9 6h10a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H9l-5-6z", "M12 10l4 4M16 10l-4 4")
+    val Schloss = strich("Schloss", "M6 11h12v9H6z", "M8.5 11V8a3.5 3.5 0 0 1 7 0v3")
 
     private fun strich(name: String, vararg pfade: String): ImageVector =
         ImageVector.Builder(name, 24.dp, 24.dp, 24f, 24f).apply {

@@ -26,6 +26,7 @@ android {
         versionCode = 3
         versionName = "0.3.0"
         buildConfigField("String", "AI_MODEL", "\"${einstellung("briefampel.model", "gemini-3.5-flash")}\"")
+        buildConfigField("String", "AI_MODEL_FALLBACK", "\"${einstellung("briefampel.fallbackModel", "gemini-3.5-flash-lite")}\"")
         buildConfigField("String", "AI_REGION", "\"${einstellung("briefampel.region", "eu")}\"")
     }
 
@@ -58,6 +59,7 @@ dependencies {
     "screenshotTestImplementation"(libs.androidx.compose.ui.tooling)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.core.splashscreen)
+    implementation("androidx.biometric:biometric:1.1.0")
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
