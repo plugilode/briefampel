@@ -80,6 +80,8 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import kotlin.math.PI
+import kotlin.math.sin
 
 /** Einstieg der App: verbindet Systemdienste (Scanner, Dateien, Zwischenablage, Vibration) mit der Oberfläche. */
 @Composable
@@ -207,9 +209,11 @@ internal fun BriefampelLayout(
     }
     AppSheets(state, model, initialSheetScroll)
     when {
-        state.showIntro -> Intro(model::finishIntro)
+        state.showIntro -> Intro(model::finishIntro, ton = state.introTon)
         state.sperre != Sperre.OFFEN -> SperrBildschirm(state, model, biometrie)
     }
+    // Das Kurz-Intro liegt über allem, auch über der Sperre, und blendet dann zu ihr über.
+    if (state.kurzIntro && !state.showIntro) KurzIntro(model::kurzIntroFertig, ton = state.introTon)
 }
 
 @Composable
@@ -601,7 +605,13 @@ private fun Antwort(s: UiState, model: BriefampelViewModel, copy: () -> Unit, sh
     var folgen by remember { mutableStateOf(true) }
     val wenig = LocalWenigBewegung.current
     LaunchedEffect(vorschau) { vorschau.interactionSource.interactions.collect { if (it is DragInteraction.Start) folgen = false } }
-    LaunchedEffect(s.writing) { if (s.writing) folgen = true }
+    LaunchedEffect(s.writing) {
+        if (s.writing) {
+            folgen = true
+            // Den entstehenden Brief sichtbar machen, auch wenn man oben bei den Stichworten war.
+            if (wenig) scroll.scrollTo(scroll.maxValue) else scroll.animateScrollTo(scroll.maxValue)
+        }
+    }
     LaunchedEffect(s.reply) {
         if (s.writing && folgen) { if (wenig) vorschau.scrollTo(vorschau.maxValue) else vorschau.animateScrollTo(vorschau.maxValue) }
     }
@@ -667,12 +677,14 @@ private fun Antwort(s: UiState, model: BriefampelViewModel, copy: () -> Unit, sh
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Puls()
                 Spacer(Modifier.width(10.dp))
-                Text("SCHREIBT · ${s.reply.split(Regex("\\s+")).count { it.isNotBlank() }} WÖRTER", style = Schrift.Marke, color = c.tinte, modifier = Modifier.weight(1f))
+                val woerter = s.reply.split(Regex("\\s+")).count { it.isNotBlank() }
+                Text(if (woerter == 0) "DENKT NACH …" else "SCHREIBT · $woerter WÖRTER", style = Schrift.Marke, color = c.tinte, modifier = Modifier.weight(1f))
                 Pille("Stopp", model::stop, Modifier, PillenArt.NEBEN, hoehe = 44.dp)
             }
         } else {
             Pille(if (s.reply.isEmpty()) "Antwort schreiben" else "Neu formulieren", model::write, symbol = Symbole.Stift)
         }
+        if (s.writing && s.reply.isBlank()) SchreibPlatzhalter()
         if (s.reply.isNotBlank()) {
             Briefpapier(s.reply, s.writing, vorschau)
             if (s.writing && !folgen) Text("Aktuellen Text zeigen", style = Schrift.KnopfKlein, color = c.tinteLeise, modifier = Modifier.clip(CircleShape).selectable(false, role = Role.Button) { folgen = true }.padding(12.dp))
@@ -691,6 +703,37 @@ private fun Puls() {
     val wenig = LocalWenigBewegung.current
     val a by rememberInfiniteTransition(label = "Puls").animateFloat(0.25f, 1f, infiniteRepeatable(tween(500), androidx.compose.animation.core.RepeatMode.Reverse), label = "Alpha")
     Box(Modifier.size(8.dp).background(c.tinte.copy(alpha = if (wenig) 1f else a), CircleShape))
+}
+
+/**
+ * Bis das erste Wort von Gemini da ist: ein Blatt, auf dem ein Stift Zeile für Zeile andeutet, dass geschrieben wird.
+ * So sieht man sofort, dass die App arbeitet.
+ */
+@Composable
+private fun SchreibPlatzhalter() {
+    val c = LocalFarben.current
+    val wenig = LocalWenigBewegung.current
+    val zeit by rememberInfiniteTransition(label = "Schreiben").animateFloat(0f, 1f, infiniteRepeatable(tween(2600, easing = LinearEasing)), label = "Zeit")
+    val t = if (wenig) 0.7f else zeit
+    val zeilen = listOf(0.42f, 0.92f, 0.78f, 0.88f, 0.55f)
+    Surface(color = c.papier, shape = RoundedCornerShape(6.dp), shadowElevation = 16.dp) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = 22.dp, vertical = 24.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Symbole.Stift, null, tint = c.aufPapier, modifier = Modifier.size(18.dp).rotate(if (wenig) 0f else sin(t * 2 * PI.toFloat() * 3) * 8f))
+                Spacer(Modifier.width(10.dp))
+                Text("ICH FORMULIERE DEINEN BRIEF …", style = Schrift.Marke, color = c.aufPapier.copy(alpha = 0.7f))
+            }
+            zeilen.forEachIndexed { i, breite ->
+                // Jede Zeile wächst nacheinander, wie mit der Hand geschrieben.
+                val anteil = ((t * zeilen.size) - i).coerceIn(0f, 1f)
+                Box(Modifier.fillMaxWidth(breite).height(9.dp)) {
+                    Box(Modifier.fillMaxWidth().fillMaxHeight().background(c.aufPapier.copy(alpha = 0.06f), CircleShape))
+                    Box(Modifier.fillMaxWidth(anteil).fillMaxHeight().background(c.aufPapier.copy(alpha = 0.22f), CircleShape))
+                }
+            }
+            Text("Das dauert meist ein paar Sekunden. Du kannst jederzeit stoppen.", style = Schrift.Fuss, color = c.aufPapier.copy(alpha = 0.6f))
+        }
+    }
 }
 
 /** Der eigene Antwortbrief entsteht auf echtem Papier – im Gegensatz zum versiegelten Eingangsbrief. */

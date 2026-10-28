@@ -61,8 +61,9 @@ internal fun SperrBildschirm(s: UiState, model: BriefampelViewModel, biometrie: 
     LaunchedEffect(angezeigt) {
         if (angezeigt != null && !wenig) wackeln.animateTo(0f, keyframes { durationMillis = 360; -14f at 60; 12f at 130; -8f at 200; 4f at 270 })
     }
-    LaunchedEffect(s.sperre) {
-        if (s.sperre == Sperre.GESPERRT && s.biometrie) biometrie?.invoke()
+    // Erst nach dem Kurz-Intro nach dem Fingerabdruck fragen, sonst liegt der Systemdialog über der Animation.
+    LaunchedEffect(s.sperre, s.kurzIntro) {
+        if (s.sperre == Sperre.GESPERRT && s.biometrie && !s.kurzIntro) biometrie?.invoke()
     }
 
     fun ziffer(z: Char) {

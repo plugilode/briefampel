@@ -13,6 +13,9 @@ class LocalStore(context: Context) {
     var consent: Boolean
         get() = prefs.getBoolean("consent_v2", false)
         set(value) { prefs.edit().putBoolean("consent_v2", value).apply() }
+    var introTon: Boolean
+        get() = prefs.getBoolean("intro_ton", true)
+        set(value) { prefs.edit().putBoolean("intro_ton", value).apply() }
     var dark: Boolean
         get() = prefs.getBoolean("dark", true)
         set(value) { prefs.edit().putBoolean("dark", value).apply() }

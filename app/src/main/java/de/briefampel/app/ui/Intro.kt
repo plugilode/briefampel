@@ -18,6 +18,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
@@ -38,11 +40,16 @@ private const val DAUER = 6.2f
  * schirmt sie ab und nimmt den Mahnbrief unter ihren Hut. Bei „Animationen entfernen“ steht sofort das Schlussbild.
  */
 @Composable
-internal fun Intro(fertig: () -> Unit) {
+internal fun Intro(fertig: () -> Unit, ton: Boolean = false) {
     val c = LocalFarben.current
     val wenig = LocalWenigBewegung.current
     val zeit = remember { Animatable(if (wenig) 1f else 0f) }
-    LaunchedEffect(Unit) { if (!wenig) zeit.animateTo(1f, tween((DAUER * 1000).toInt(), easing = LinearEasing)) }
+    val kontext = LocalContext.current
+    val vorschau = LocalInspectionMode.current
+    LaunchedEffect(Unit) {
+        if (ton && !vorschau) IntroTon.spielen(kontext)
+        if (!wenig) zeit.animateTo(1f, tween((DAUER * 1000).toInt(), easing = LinearEasing))
+    }
     val t = zeit.value * DAUER
     fun fenster(von: Float, bis: Float) = ((t - von) / (bis - von)).coerceIn(0f, 1f)
     fun sanft(x: Float) = 1f - (1f - x) * (1f - x) * (1f - x)
@@ -74,8 +81,11 @@ internal fun Intro(fertig: () -> Unit) {
             Modifier.align(Alignment.TopCenter).offset(y = freundinOben - (h + 200.dp) * (1f - schweben))
                 .graphicsLayer { rotationZ = schwanken },
         ) {
-            Regenschirm(Modifier.align(Alignment.TopCenter).offset(y = (-150).dp - 20.dp * (1f - schirm)).size(184.dp, 160.dp).alpha(schirm))
-            AmpelFreundin(Stimmung.WARTET, "Die Briefampel kommt mit dem Regenschirm angeschwebt", lampe = 60.dp, hutLuepfen = if (t > 4.5f) 1 else 0)
+            // Sie hält den Schirm selbst am Stock; nach der Landung lässt sie ihn sinken.
+            AmpelFreundin(
+                Stimmung.WARTET, "Die Briefampel kommt mit dem Regenschirm in der Hand angeschwebt",
+                lampe = 60.dp, hutLuepfen = if (t > 4.5f) 1 else 0, arme = true, schirm = schirm,
+            )
         }
 
         // Der Mahnbrief landet vor ihr, zittert und verschwindet dann unter ihrem Hut.
@@ -116,6 +126,63 @@ internal fun Intro(fertig: () -> Unit) {
             Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(20.dp).alpha(fenster(5.2f, 5.8f)),
         ) {
             if (t > 5.2f) Pille("Los geht’s", fertig)
+        }
+    }
+}
+
+/**
+ * Kurzes Marken-Intro bei jedem weiteren Start (2 Sekunden): Die Briefampel gleitet am Schirm herein, schaltet einmal
+ * Rot–Gelb–Grün durch, lüpft den Hut, darunter der Schriftzug. Bei „Animationen entfernen“ entfällt es.
+ */
+@Composable
+internal fun KurzIntro(fertig: () -> Unit, ton: Boolean = false) {
+    val c = LocalFarben.current
+    val wenig = LocalWenigBewegung.current
+    val zeit = remember { Animatable(0f) }
+    val kontext = LocalContext.current
+    val vorschau = LocalInspectionMode.current
+    LaunchedEffect(Unit) {
+        if (wenig) { fertig(); return@LaunchedEffect }
+        // Das Sound-Logo startet mit dem Hereingleiten; es klingt nach dem Intro noch kurz aus.
+        if (ton && !vorschau) IntroTon.spielen(kontext)
+        zeit.animateTo(1f, tween(2000, easing = LinearEasing))
+        fertig()
+    }
+    val t = zeit.value * 2.0f
+    fun fenster(von: Float, bis: Float) = ((t - von) / (bis - von)).coerceIn(0f, 1f)
+    // Sie gleitet am Schirm von oben herein und bremst sanft ab, wie im großen Intro.
+    val gleiten = 1f - (1f - fenster(0f, 0.8f)).let { it * it * it }
+    val schwanken = sin(t * 9f) * 6f * (1f - gleiten)
+    val schirm = 1f - fenster(1.15f, 1.45f)
+    val stimmung = when {
+        t < 0.75f -> Stimmung.WARTET
+        t < 1.15f -> Stimmung.LIEST
+        else -> Stimmung.GRUEN
+    }
+    BoxWithConstraints(
+        Modifier.fillMaxSize().background(c.grund)
+            .clickable(remember { MutableInteractionSource() }, indication = null, onClick = fertig)
+            .graphicsLayer { alpha = 1f - fenster(1.75f, 2.0f) },
+        contentAlignment = Alignment.Center,
+    ) {
+        val start = maxHeight.value * 0.9f
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Box(Modifier.graphicsLayer {
+                alpha = fenster(0f, 0.15f)
+                translationY = -(1f - gleiten) * start * density
+                rotationZ = schwanken
+            }) {
+                AmpelFreundin(stimmung, "Briefampel", lampe = 46.dp, hutLuepfen = if (t > 1.2f) 1 else 0, arme = true, schirm = schirm)
+            }
+            Spacer(Modifier.height(26.dp))
+            Text(
+                "Briefampel", style = Schrift.Anzeige.copy(fontSize = 34.sp, lineHeight = 34.sp), color = c.tinte,
+                modifier = Modifier.graphicsLayer { alpha = fenster(0.85f, 1.2f); translationY = (1f - fenster(0.85f, 1.2f)) * 16f },
+            )
+            Text(
+                "Liest zuerst. Für dich.", style = Schrift.TextKlein, color = c.tinteLeise,
+                modifier = Modifier.padding(top = 8.dp).graphicsLayer { alpha = fenster(1.05f, 1.4f) },
+            )
         }
     }
 }
