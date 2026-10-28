@@ -42,7 +42,7 @@ class BriefampelViewModelTest {
         model.sheet(null)
         runCurrent()
         assertEquals(0, fake.analyses)
-        assertEquals(3, model.state.value.remaining)
+        assertEquals(3, model.state.value.guthaben)
     }
 
     @Test fun `successful analysis consumes one use and cache consumes none`() = runTest(dispatcher) {
@@ -50,12 +50,12 @@ class BriefampelViewModelTest {
         model.analyze(); model.consent(); runCurrent()
         assertEquals(1, fake.analyses)
         assertEquals(Screen.RESULT, model.state.value.screen)
-        assertEquals(2, model.state.value.remaining)
+        assertEquals(2, model.state.value.guthaben)
         assertFalse(model.state.value.example)
         assertNull(model.state.value.sheet)
         model.back(); model.analyze(); runCurrent()
         assertEquals(1, fake.analyses)
-        assertEquals(2, model.state.value.remaining)
+        assertEquals(2, model.state.value.guthaben)
     }
 
     @Test fun `failed analysis preserves input and quota for explicit retry`() = runTest(dispatcher) {
@@ -64,12 +64,12 @@ class BriefampelViewModelTest {
         model.analyze(); model.consent(); runCurrent()
         assertNotNull(model.state.value.error)
         assertEquals("Mein Testbrief", model.state.value.input.text)
-        assertEquals(3, model.state.value.remaining)
+        assertEquals(3, model.state.value.guthaben)
         assertFalse(model.state.value.loading)
         fake.fail = false
         model.analyze(); runCurrent()
         assertEquals(Screen.RESULT, model.state.value.screen)
-        assertEquals(2, model.state.value.remaining)
+        assertEquals(2, model.state.value.guthaben)
     }
 
     @Test fun `stopping reply retains partial text and regeneration is a fresh request`() = runTest(dispatcher) {
@@ -142,7 +142,7 @@ class BriefampelViewModelTest {
         assertEquals("Mein eigener Brief", model.state.value.input.text)
     }
 
-    @Test fun `daily limit blocks fourth different analysis`() = runTest(dispatcher) {
+    @Test fun `empty credit opens the packages instead of a fourth analysis`() = runTest(dispatcher) {
         repeat(3) { index ->
             model.setText("Brief $index"); model.analyze()
             if (!model.state.value.consent) model.consent()
@@ -150,8 +150,8 @@ class BriefampelViewModelTest {
         }
         model.setText("Vierter Brief"); model.analyze(); runCurrent()
         assertEquals(3, fake.analyses)
-        assertEquals(0, model.state.value.remaining)
-        assertTrue(model.state.value.error.orEmpty().contains("aufgebraucht"))
+        assertEquals(0, model.state.value.guthaben)
+        assertEquals(Sheet.PAKETE, model.state.value.sheet)
     }
 
     @Test fun `personal key activates Gemini without Firebase and changes require new consent`() = runTest(dispatcher) {

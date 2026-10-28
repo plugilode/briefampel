@@ -41,14 +41,11 @@ class DomainTest {
         assertEquals(text, toggleKeyword(withChip, "Forderung bestreiten"))
         assertEquals("", toggleKeyword("  Forderung bestreiten  ", "Forderung bestreiten"))
     }
-    @Test fun `daily quota resets on date change and never becomes negative`() {
-        var usage = Usage()
-        assertEquals(3, usage.remaining("2026-10-26"))
-        repeat(3) { usage = usage.consume("2026-10-26") }
-        assertEquals(0, usage.remaining("2026-10-26"))
-        assertEquals(3, usage.remaining("2026-10-27"))
-        assertEquals(2, usage.consume("2026-10-27").remaining("2026-10-27"))
-        assertEquals(0, Usage("2026-10-26", 50).remaining("2026-10-26"))
+    @Test fun `one analysis covers three replies and never goes negative`() {
+        assertEquals(3, Guthaben.freieAntworten(1, 0))
+        assertEquals(0, Guthaben.freieAntworten(1, 3))
+        assertEquals(2, Guthaben.freieAntworten(2, 4))
+        assertEquals(0, Guthaben.freieAntworten(1, 7))
     }
     @Test fun `examples keep appointment separate from response deadline`() {
         assertFalse(Beispiele.fuer(Ampel.GRUEN, today).analyse.antwortNoetig)

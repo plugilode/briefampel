@@ -22,7 +22,7 @@ import android.os.SystemClock
 
 enum class Screen { INPUT, RESULT, REPLY, VERLAUF }
 enum class Sperre { OFFEN, EINRICHTEN, GESPERRT }
-enum class Sheet { CONSENT, PASTE, SETTINGS, PRIVACY, ORIGINAL }
+enum class Sheet { CONSENT, PASTE, SETTINGS, PRIVACY, ORIGINAL, PAKETE }
 
 data class UiState(
     val screen: Screen = Screen.INPUT,
@@ -39,7 +39,8 @@ data class UiState(
     val sender: Sender = Sender(),
     val reply: String = "",
     val dark: Boolean = true,
-    val remaining: Int = 3,
+    /** Verbleibende Analysen (Startguthaben plus gekaufte Pakete). */
+    val guthaben: Int = Guthaben.START,
     val consent: Boolean = false,
     val configured: Boolean = false,
     val personalApi: Boolean = false,
@@ -78,7 +79,7 @@ class BriefampelViewModel @JvmOverloads constructor(
         showIntro = !store.introSeen,
         kurzIntro = store.introSeen,
         introTon = store.introTon,
-        remaining = store.usage.remaining(today().toString()),
+        guthaben = store.guthaben,
         sperre = when { !zugang.aktiv -> Sperre.OFFEN; !zugang.eingerichtet -> Sperre.EINRICHTEN; else -> Sperre.GESPERRT },
         biometrie = zugang.biometrie))
     val state = mutable.asStateFlow()
@@ -182,9 +183,16 @@ class BriefampelViewModel @JvmOverloads constructor(
         val id = state.value.eintragId ?: return
         if (text.isBlank() || state.value.example) return
         val neu = state.value.verlauf.map { e ->
-            if (e.id == id) e.copy(antworten = e.antworten + GespeicherteAntwort(text, ton.label, System.currentTimeMillis())) else e
+            if (e.id != id) return@map e
+            // Sind die 3 Antworten dieser Analyse verbraucht, kostet die nächste eine weitere Analyse.
+            val neueAnalyse = Guthaben.freieAntworten(e.bezahlteAnalysen, e.antworten.size) == 0
+            if (neueAnalyse) store.guthaben = store.guthaben - 1
+            e.copy(
+                antworten = e.antworten + GespeicherteAntwort(text, ton.label, System.currentTimeMillis()),
+                bezahlteAnalysen = e.bezahlteAnalysen + if (neueAnalyse) 1 else 0,
+            )
         }
-        mutable.update { it.copy(verlauf = neu) }
+        mutable.update { it.copy(verlauf = neu, guthaben = store.guthaben) }
         verlaufSichern(neu)
     }
 
@@ -192,6 +200,17 @@ class BriefampelViewModel @JvmOverloads constructor(
     fun error(text: String) { mutable.update { it.copy(error = text) } }
     fun clearError() { mutable.update { it.copy(error = null) } }
     fun finishIntro() { store.introSeen = true; mutable.update { it.copy(showIntro = false) } }
+    /** Antworten, die zum aktuellen Brief noch ohne neue Analyse gehen; null ohne Verlaufseintrag. */
+    fun freieAntworten(s: UiState = state.value): Int? =
+        s.verlauf.firstOrNull { it.id == s.eintragId }?.let { Guthaben.freieAntworten(it.bezahlteAnalysen, it.antworten.size) }
+
+    /** Nur in der Debug-Testversion: Guthaben zum Ausprobieren auffüllen. */
+    fun testGuthaben() {
+        if (!BuildConfig.DEBUG) return
+        store.guthaben = store.guthaben + 10
+        mutable.update { it.copy(guthaben = store.guthaben) }
+    }
+
     fun kurzIntroFertig() { mutable.update { it.copy(kurzIntro = false) } }
     fun introTon(an: Boolean) { store.introTon = an; mutable.update { it.copy(introTon = an) } }
     fun replayIntro() { mutable.update { it.copy(showIntro = true, sheet = null) } }
@@ -255,7 +274,7 @@ class BriefampelViewModel @JvmOverloads constructor(
         val day = today()
         val cache = cached?.takeIf { it.first == input.fingerprint() && SystemClock.elapsedRealtime() - it.second < 300_000 }
         if (cache != null) { showAnalysis(cache.third, input); return }
-        if (store.usage.remaining(day.toString()) == 0) { error("Für heute sind deine drei Prüfungen aufgebraucht. Morgen geht es weiter."); return }
+        if (store.guthaben <= 0) { mutable.update { it.copy(sheet = Sheet.PAKETE, error = null) }; return }
         mutable.update { it.copy(loading = true, error = null) }
         val serial = ++workSerial
         work = viewModelScope.launch {
@@ -263,7 +282,7 @@ class BriefampelViewModel @JvmOverloads constructor(
                 val analysis = provider.analyze(input, day)
                 if (serial != workSerial) return@launch
                 cached = Triple(input.fingerprint(), SystemClock.elapsedRealtime(), analysis)
-                store.usage = store.usage.consume(day.toString())
+                store.guthaben = store.guthaben - 1
                 showAnalysis(analysis, input)
             } catch (cancel: CancellationException) { throw cancel }
             catch (e: Exception) { if (serial == workSerial) error(errorMessage(e)) }
@@ -279,7 +298,7 @@ class BriefampelViewModel @JvmOverloads constructor(
             else listOf(VerlaufEintrag(id, System.currentTimeMillis(), analysis, input.pages)) + state.value.verlauf
         gespeichert = fingerabdruck to id
         mutable.update { it.copy(screen = Screen.RESULT, result = GepruefterBrief(analysis, input.text, input.pages), example = false,
-            reply = "", keywords = "", tone = Tone.SACHLICH, sheet = null, remaining = store.usage.remaining(today().toString()),
+            reply = "", keywords = "", tone = Tone.SACHLICH, sheet = null, guthaben = store.guthaben,
             verlauf = liste, eintragId = id, ausVerlauf = false) }
         if (vorhanden == null) verlaufSichern(liste)
     }
@@ -302,6 +321,10 @@ class BriefampelViewModel @JvmOverloads constructor(
         if (s.writing || s.example || s.result == null) return
         if (s.keywords.isBlank()) { error("Ein paar Stichworte brauche ich."); return }
         if (!s.consent) { error("Bitte stimme in den Einstellungen zuerst der KI-Verarbeitung zu."); return }
+        if (freieAntworten(s) == 0 && store.guthaben <= 0) {
+            mutable.update { it.copy(sheet = Sheet.PAKETE, error = "Die 3 Antworten zu diesem Brief sind verbraucht. Für weitere brauchst du eine neue Analyse.") }
+            return
+        }
         mutable.update { it.copy(writing = true, reply = "", error = null) }
         val serial = ++workSerial
         work = viewModelScope.launch {

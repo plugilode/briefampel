@@ -309,10 +309,11 @@ private fun Eingang(s: UiState, model: BriefampelViewModel, scan: () -> Unit, fi
                     }
                 }
             }
+            Spacer(Modifier.height(18.dp))
+            GuthabenZeile(s.guthaben) { model.sheet(Sheet.PAKETE) }
             Text(
-                if (s.personalApi) "${s.remaining} Prüfungen heute · API-Kosten über dein Google-Projekt"
-                else "${s.remaining} Prüfungen heute frei · oder ein PDF direkt aus der Mail-App teilen",
-                style = Schrift.Fuss, color = c.tinteHinweis, modifier = Modifier.padding(top = 14.dp, bottom = 12.dp),
+                "Tipp: Ein PDF kannst du auch direkt aus der Mail-App mit Briefampel teilen.",
+                style = Schrift.Fuss, color = c.tinteHinweis, modifier = Modifier.padding(top = 10.dp, bottom = 12.dp),
             )
         }
         Column(Modifier.padding(horizontal = 20.dp).padding(top = 8.dp, bottom = 6.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -333,6 +334,37 @@ private fun Eingang(s: UiState, model: BriefampelViewModel, scan: () -> Unit, fi
                     }
                 }
             }
+        }
+    }
+}
+
+/**
+ * Ehrliche Kostenanzeige: wie viele Analysen noch da sind und was danach kommt.
+ * Wird es knapp, wird die Zeile deutlicher, aber nie alarmierend.
+ */
+@Composable
+private fun GuthabenZeile(guthaben: Int, pakete: () -> Unit) {
+    val c = LocalFarben.current
+    val knapp = guthaben <= 1
+    Surface(
+        onClick = pakete, color = if (knapp) c.flaeche else Color.Transparent, contentColor = c.tinte,
+        shape = RoundedCornerShape(18.dp), border = BorderStroke(1.dp, c.linie), modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(Modifier.padding(horizontal = 16.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Eyebrow("DEIN GUTHABEN")
+                Text(
+                    when {
+                        guthaben == 0 -> "Keine Analysen mehr · ab 1,99 €"
+                        guthaben == 1 -> "Noch 1 Analyse. Danach ab 1,99 € für 10 Briefe."
+                        else -> "Noch ${Guthaben.analysenText(guthaben)} · danach ab 1,99 € für 10"
+                    },
+                    style = Schrift.KnopfKlein, color = if (guthaben == 0) c.gelbText else c.tinte,
+                )
+                Text("1 Analyse = ein Brief geprüft + bis zu 3 Antworten", style = Schrift.Fuss, color = c.tinteHinweis)
+            }
+            Text("Preise", style = Schrift.KnopfKlein, color = c.tinteLeise, modifier = Modifier.padding(start = 12.dp))
+            Icon(Symbole.Weiter, null, tint = c.tinteHinweis, modifier = Modifier.size(16.dp))
         }
     }
 }
@@ -683,6 +715,16 @@ private fun Antwort(s: UiState, model: BriefampelViewModel, copy: () -> Unit, sh
             }
         } else {
             Pille(if (s.reply.isEmpty()) "Antwort schreiben" else "Neu formulieren", model::write, symbol = Symbole.Stift)
+            model.freieAntworten(s)?.let { frei ->
+                Text(
+                    when (frei) {
+                        0 -> "Die 3 Antworten zu diesem Brief sind verbraucht. Die nächste kostet 1 Analyse (noch ${s.guthaben})."
+                        1 -> "Noch 1 Antwort zu diesem Brief inklusive."
+                        else -> "Noch $frei Antworten zu diesem Brief inklusive."
+                    },
+                    style = Schrift.Fuss, color = c.tinteHinweis,
+                )
+            }
         }
         if (s.writing && s.reply.isBlank()) SchreibPlatzhalter()
         if (s.reply.isNotBlank()) {
