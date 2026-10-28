@@ -96,9 +96,9 @@ Reihenfolge, damit nichts blockiert:
 | Schritt | Inhalt |
 |---|---|
 | A ✅ | **Ehrliche Kostenanzeige in der App**: „Noch 3 von 3 Gratis-Briefen“, Guthaben im Kopf, ein Paket-Bildschirm mit Preisen. Vor dem letzten Gratis-Brief kommt ein freundlicher Hinweis. |
-| B | **Anmelden mit Google** (Android Credential Manager) als eigener Schritt vor dem ersten Kauf, nicht vor dem ersten Brief. Die Gratis-Briefe gehen ohne Anmeldung. |
-| C | **Google Play Billing** in der App: Pakete laden, kaufen, Kauf an den Server schicken. |
-| D | **Firebase Functions** (TypeScript): Kauf prüfen, Guthaben buchen, Gemini über den Server aufrufen, Tagesgrenze, Rückbuchung bei Fehlern. Dazu Tests mit dem Firebase-Emulator. |
-| E | **Release-Variante** nutzt nur noch den Server. Der eigene Schlüssel bleibt allein in der Debug-Test-APK. |
+| B ✅ | **Anmelden mit Google** (Android Credential Manager), einmal vor dem ersten Brief. Geändert gegenüber dem ersten Plan: Auch die Gratis-Briefe laufen über den Server (der Schlüssel darf nie in die App), und ohne Konto könnte jemand durch Neuinstallieren endlos gratis prüfen. Danach geht jeder Scan ohne Zwischenschritt direkt zur Ampel. |
+| C ✅ | **Google Play Billing** in der App: Pakete laden, kaufen, Kauf an den Server schicken. |
+| D ✅ | **Firebase Functions** (TypeScript): Kauf prüfen, Guthaben buchen, Gemini über den Server aufrufen, Tagesgrenze, Rückbuchung bei Fehlern. Dazu Tests mit dem Firebase-Emulator. |
+| E ✅ | **Release-Variante** nutzt nur noch den Server. Der eigene Schlüssel bleibt allein in der Debug-Test-APK. |
 
-A, B (ohne echte Konten), C (gegen Testprodukte) und D (lokal im Emulator) baue und teste ich, bevor deine Konten fertig sind. Live geht es erst mit deinen Konten und einem geschlossenen Test (12 Tester, 14 Tage).
+A bis E sind gebaut und mit Tests abgesichert (App: 73 Tests, Server: 13 Tests), aber noch nicht gegen echte Konten gelaufen. Die Schritte zum Einschalten stehen in [EINRICHTUNG.md](EINRICHTUNG.md). Live geht es erst mit deinen Konten und einem geschlossenen Test (12 Tester, 14 Tage).

@@ -65,6 +65,7 @@ private fun SheetContent(s: UiState, model: BriefampelViewModel, sheet: Sheet, i
                 Sheet.PASTE -> Paste(s, model)
                 Sheet.ORIGINAL -> Original(s, model)
                 Sheet.PAKETE -> Pakete(s, model)
+                Sheet.ANMELDEN -> Anmelden(s, model)
             }
         }
 }
@@ -136,13 +137,15 @@ private fun Settings(s: UiState, model: BriefampelViewModel) {
     ActionButton("Meine Briefe ansehen", model::verlaufOeffnen, primary = false)
     ActionButton("Jetzt sperren", model::sperren, primary = false)
     HorizontalDivider(color = c.linie)
-    Eyebrow("KI-VERBINDUNG")
-    Text(when { s.personalApi -> "Dein Gemini-Schlüssel ist hinterlegt. Die Verbindung wird bei deiner nächsten Prüfung getestet."; s.configured -> "Firebase ist eingerichtet. Die Verbindung wird bei deiner nächsten Prüfung verwendet."; s.personalApiSupported -> "Hinterlege deinen eigenen Gemini-API-Schlüssel, um auf diesem Handy ohne Firebase zu testen."; else -> "Die Vorschau funktioniert. Eigene Briefe können erst nach Einrichtung von Firebase analysiert werden." }, style = Schrift.Text, color = c.tinte)
-    if (s.personalApiSupported) PersonalApiSettings(s, model)
+    if (s.serverModus) Konto(s, model)
+    else Eyebrow("KI-VERBINDUNG")
+    if (!s.serverModus) Text(when { s.personalApi -> "Dein Gemini-Schlüssel ist hinterlegt. Die Verbindung wird bei deiner nächsten Prüfung getestet."; s.configured -> "Firebase ist eingerichtet. Die Verbindung wird bei deiner nächsten Prüfung verwendet."; s.personalApiSupported -> "Hinterlege deinen eigenen Gemini-API-Schlüssel, um auf diesem Handy ohne Firebase zu testen."; else -> "Die Vorschau funktioniert. Eigene Briefe können erst nach Einrichtung von Firebase analysiert werden." }, style = Schrift.Text, color = c.tinte)
+    if (s.serverModus) Unit
+    else if (s.personalApiSupported) PersonalApiSettings(s, model)
     else if (!s.configured) Text("Einrichtung für den Entwickler: README.md im Projekt.", style = Schrift.TextKlein, color = c.tinteLeise)
     Info("GUTHABEN", "${de.briefampel.app.domain.Guthaben.analysenText(s.guthaben)} · 1 Analyse = ein Brief geprüft + bis zu 3 Antworten · verfällt nicht")
     ActionButton("Pakete und Preise", { model.sheet(Sheet.PAKETE) }, primary = false)
-    if (BuildConfig.DEBUG) TextButton(onClick = model::testGuthaben) { Text("Testversion: +10 Analysen", color = c.tinteLeise) }
+    if (BuildConfig.DEBUG && !s.serverModus) TextButton(onClick = model::testGuthaben) { Text("Testversion: +10 Analysen", color = c.tinteLeise) }
     Info("ZUSTIMMUNG", if (s.consent) "Erteilt. Gilt für Analysen und Antwortentwürfe." else "Noch nicht erteilt. Vor einer KI-Anfrage fragen wir nach.")
     if (s.consent) ActionButton("Zustimmung widerrufen", model::revokeConsent, primary = false)
     else if (s.configured) ActionButton("Verarbeitung ansehen", { model.sheet(Sheet.CONSENT) }, primary = false)
@@ -151,7 +154,7 @@ private fun Settings(s: UiState, model: BriefampelViewModel) {
     Eyebrow("ABSENDER · NUR AUF DIESEM HANDY")
     SenderFields(s.sender, model::sender)
     TextButton(onClick = model::forgetSender) { Text("Absenderdaten löschen", color = c.tinteLeise) }
-    Text("Briefampel ${BuildConfig.VERSION_NAME} · Vorschau", style = Schrift.Fuss, color = c.tinteLeise)
+    Text("Briefampel ${BuildConfig.VERSION_NAME}${if (s.serverModus) "" else " · Vorschau"}", style = Schrift.Fuss, color = c.tinteLeise)
     Eyebrow("BEISPIELE")
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         de.briefampel.app.domain.Ampel.entries.forEach { signal ->
@@ -268,14 +271,58 @@ private fun Pakete(s: UiState, model: BriefampelViewModel) {
                     Text("${p.analysen} Analysen", style = Schrift.Titel.copy(fontSize = 22.sp))
                     Text(p.jeAnalyse, style = Schrift.TextKlein, color = if (an) c.aufKnopf.copy(alpha = 0.75f) else c.tinteLeise)
                 }
-                Text(p.preis, style = Schrift.ZahlGross.copy(fontSize = 20.sp))
+                Text(s.preise[p.id] ?: p.preis, style = Schrift.ZahlGross.copy(fontSize = 20.sp))
             }
         }
     }
     Info("EINE ANALYSE", "Ein Brief geprüft – Ampel, Zusammenfassung, Frist – plus bis zu 3 Antwortentwürfe dazu.")
-    Info("GRATIS", "Jede neue Installation startet mit 3 Analysen zum Ausprobieren.")
-    ActionButton("Kaufen kommt mit dem Store-Start", {}, enabled = false)
-    Text("In dieser Testversion ist noch kein Kauf möglich. Bezahlt wird später sicher über Google Play.", style = Schrift.TextKlein, color = c.tinteLeise)
-    if (BuildConfig.DEBUG) ActionButton("Testversion: +10 Analysen", model::testGuthaben, primary = false)
+    Info("GRATIS", if (s.serverModus) "Jedes neue Google-Konto startet mit 3 Analysen zum Ausprobieren." else "Jede neue Installation startet mit 3 Analysen zum Ausprobieren.")
+    val activity = LocalContext.current.findActivity()
+    if (s.serverModus) {
+        val paket = de.briefampel.app.domain.Guthaben.pakete.first { it.id == gewaehlt }
+        s.kaufMeldung?.let { Text(it, style = Schrift.Text, color = c.tinte) }
+        if (!s.angemeldet) ActionButton(if (s.anmeldenLaeuft) "Anmelden …" else "Mit Google anmelden", { activity?.let(model::anmelden) }, enabled = !s.anmeldenLaeuft)
+        else ActionButton(if (s.kaufLaeuft) "Google Play öffnet …" else "${paket.analysen} Analysen für ${s.preise[paket.id] ?: paket.preis} kaufen",
+            { activity?.let { model.kaufen(it, paket.id) } }, enabled = !s.kaufLaeuft)
+        Text("Bezahlt wird sicher über Google Play. Das Guthaben gehört zu deinem Google-Konto und geht beim Handywechsel nicht verloren.", style = Schrift.TextKlein, color = c.tinteLeise)
+    } else {
+        ActionButton("Kaufen kommt mit dem Store-Start", {}, enabled = false)
+        Text("In dieser Testversion ist noch kein Kauf möglich. Bezahlt wird später sicher über Google Play.", style = Schrift.TextKlein, color = c.tinteLeise)
+        if (BuildConfig.DEBUG) ActionButton("Testversion: +10 Analysen", model::testGuthaben, primary = false)
+    }
     ActionButton("Schließen", { model.sheet(null) }, primary = false)
+}
+
+/** Konto in den Einstellungen: wer angemeldet ist, und abmelden. */
+@Composable
+private fun Konto(s: UiState, model: BriefampelViewModel) {
+    val c = LocalFarben.current
+    val activity = LocalContext.current.findActivity()
+    Eyebrow("DEIN KONTO")
+    if (s.angemeldet) {
+        Text("Angemeldet als ${s.email ?: "Google-Konto"}. Dein Guthaben ist dort gesichert, deine Briefe bleiben nur auf diesem Handy.", style = Schrift.Text, color = c.tinte)
+        ActionButton("Abmelden", model::abmelden, primary = false)
+    } else {
+        Text("Noch nicht angemeldet. Vor deiner ersten Prüfung meldest du dich einmal mit Google an.", style = Schrift.Text, color = c.tinte)
+        ActionButton(if (s.anmeldenLaeuft) "Anmelden …" else "Mit Google anmelden", { activity?.let(model::anmelden) }, primary = false, enabled = !s.anmeldenLaeuft)
+    }
+}
+
+/** Einmal anmelden, bevor der erste Brief zum Server geht. Kurz, ehrlich, ohne Druck. */
+@Composable
+private fun Anmelden(s: UiState, model: BriefampelViewModel) {
+    val c = LocalFarben.current
+    val activity = LocalContext.current.findActivity()
+    Eyebrow("EINMAL ANMELDEN · DANN GEHT'S LOS")
+    Text("Dein Guthaben\nbraucht ein Zuhause.", style = Schrift.Anzeige, color = c.tinte)
+    Text("Mit deinem Google-Konto bekommst du ${de.briefampel.app.domain.Guthaben.analysenText(de.briefampel.app.domain.Guthaben.START)} geschenkt, und gekaufte Pakete gehen beim Handywechsel nicht verloren.", style = Schrift.Text, color = c.tinte)
+    Info("DEINE BRIEFE", "Bleiben nur auf diesem Handy. Das Konto kennt nur dein Guthaben, nicht deine Post.")
+    ActionButton(if (s.anmeldenLaeuft) "Anmelden …" else "Mit Google anmelden", { activity?.let(model::anmelden) }, enabled = !s.anmeldenLaeuft)
+    ActionButton("Später", { model.sheet(null) }, primary = false)
+}
+
+internal tailrec fun android.content.Context.findActivity(): android.app.Activity? = when (this) {
+    is android.app.Activity -> this
+    is android.content.ContextWrapper -> baseContext.findActivity()
+    else -> null
 }

@@ -72,7 +72,7 @@ internal class DirectGeminiProvider(
                             if (full.isNotBlank()) trySend(full.toString())
                         }
                         if (full.isNotBlank()) close()
-                        else close(Error("Keine Antwort erhalten. Bitte nochmal versuchen."))
+                        else close(IllegalStateException("Keine Antwort erhalten. Bitte nochmal versuchen."))
                     }
                 } catch (e: Exception) { close(e) }
             }

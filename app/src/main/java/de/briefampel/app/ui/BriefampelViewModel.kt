@@ -22,7 +22,7 @@ import android.os.SystemClock
 
 enum class Screen { INPUT, RESULT, REPLY, VERLAUF }
 enum class Sperre { OFFEN, EINRICHTEN, GESPERRT }
-enum class Sheet { CONSENT, PASTE, SETTINGS, PRIVACY, ORIGINAL, PAKETE }
+enum class Sheet { CONSENT, PASTE, SETTINGS, PRIVACY, ORIGINAL, PAKETE, ANMELDEN }
 
 data class UiState(
     val screen: Screen = Screen.INPUT,
@@ -59,6 +59,15 @@ data class UiState(
     /** Verlaufseintrag des gerade gezeigten Ergebnisses; Antworten werden dort abgelegt. */
     val eintragId: String? = null,
     val ausVerlauf: Boolean = false,
+    /** Store-Version: Guthaben und KI laufen über den eigenen Server, mit Google-Konto. */
+    val serverModus: Boolean = false,
+    val angemeldet: Boolean = false,
+    val email: String? = null,
+    val anmeldenLaeuft: Boolean = false,
+    /** Echte Preise aus Google Play je Paket-ID; leer, solange Play sie nicht geliefert hat. */
+    val preise: Map<String, String> = emptyMap(),
+    val kaufLaeuft: Boolean = false,
+    val kaufMeldung: String? = null,
 )
 
 class BriefampelViewModel @JvmOverloads constructor(
@@ -69,11 +78,12 @@ class BriefampelViewModel @JvmOverloads constructor(
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
     private val zugang: Zugang = ZugangsSpeicher(application),
     private val verlauf: Verlauf = VerlaufSpeicher(application),
+    private val konto: Konto? = erstelleKonto(application),
 ) : AndroidViewModel(application) {
     private val store = LocalStore(application)
     val inputReader = InputReader(application)
     private fun today() = LocalDate.now(ZoneId.of("Europe/Berlin"))
-    private fun isConfigured() = configured ?: personalApi.configured
+    private fun isConfigured() = konto != null || (configured ?: personalApi.configured)
     private val mutable = MutableStateFlow(UiState(sender = store.sender, dark = store.dark, consent = store.consent,
         configured = isConfigured(), personalApi = personalApi.configured, personalApiSupported = personalApi.supported,
         showIntro = !store.introSeen,
@@ -81,12 +91,15 @@ class BriefampelViewModel @JvmOverloads constructor(
         introTon = store.introTon,
         guthaben = store.guthaben,
         sperre = when { !zugang.aktiv -> Sperre.OFFEN; !zugang.eingerichtet -> Sperre.EINRICHTEN; else -> Sperre.GESPERRT },
-        biometrie = zugang.biometrie))
+        biometrie = zugang.biometrie,
+        serverModus = konto != null, angemeldet = konto?.angemeldet == true, email = konto?.email))
     val state = mutable.asStateFlow()
     private var work: Job? = null
     private var workSerial = 0
     private var cached: Triple<String, Long, LetterAnalysis>? = null
     private var afterConsent = false
+    /** Nach der Anmeldung direkt weiterprüfen, wenn die Anmeldung von „Prüfen“ kam. */
+    private var nachAnmeldung = false
     /** Fingerabdruck der zuletzt gespeicherten Prüfung, damit ein Cache-Treffer keinen doppelten Eintrag erzeugt. */
     private var gespeichert: Pair<String, String>? = null
 
@@ -186,7 +199,8 @@ class BriefampelViewModel @JvmOverloads constructor(
             if (e.id != id) return@map e
             // Sind die 3 Antworten dieser Analyse verbraucht, kostet die nächste eine weitere Analyse.
             val neueAnalyse = Guthaben.freieAntworten(e.bezahlteAnalysen, e.antworten.size) == 0
-            if (neueAnalyse) store.guthaben = store.guthaben - 1
+            // Mit Server bucht der Server selbst ab und meldet den neuen Stand.
+            if (neueAnalyse && konto == null) store.guthaben = store.guthaben - 1
             e.copy(
                 antworten = e.antworten + GespeicherteAntwort(text, ton.label, System.currentTimeMillis()),
                 bezahlteAnalysen = e.bezahlteAnalysen + if (neueAnalyse) 1 else 0,
@@ -196,7 +210,70 @@ class BriefampelViewModel @JvmOverloads constructor(
         verlaufSichern(neu)
     }
 
-    fun sheet(sheet: Sheet?) { mutable.update { it.copy(sheet = sheet, error = null) }; if (sheet == null) afterConsent = false }
+    init {
+        konto?.let { k ->
+            // Der Server ist die Wahrheit; lokal merken wir nur den letzten Stand fürs Anzeigen.
+            viewModelScope.launch { k.guthaben.collect { g -> if (g != null) { store.guthaben = g; mutable.update { it.copy(guthaben = g) } } } }
+            if (k.angemeldet) kontoAbgleichen()
+        }
+    }
+
+    private fun kontoAbgleichen() {
+        val k = konto ?: return
+        viewModelScope.launch {
+            try { k.guthabenLaden() } catch (cancel: CancellationException) { throw cancel } catch (_: Exception) {}
+            try { k.offeneKaeufeEinloesen() } catch (cancel: CancellationException) { throw cancel } catch (_: Exception) {}
+            try { val p = k.preise(); mutable.update { it.copy(preise = p) } } catch (cancel: CancellationException) { throw cancel } catch (_: Exception) {}
+        }
+    }
+
+    fun anmelden(activity: android.app.Activity) {
+        val k = konto ?: return
+        if (state.value.anmeldenLaeuft) return
+        mutable.update { it.copy(anmeldenLaeuft = true, error = null) }
+        viewModelScope.launch {
+            try {
+                if (!k.anmelden(activity)) return@launch
+                mutable.update { it.copy(angemeldet = true, email = k.email, sheet = if (it.sheet == Sheet.ANMELDEN) null else it.sheet) }
+                kontoAbgleichen()
+                if (nachAnmeldung) { nachAnmeldung = false; analyze() }
+            } catch (cancel: CancellationException) { throw cancel }
+            catch (e: Exception) { error(errorMessage(e)) }
+            finally { mutable.update { it.copy(anmeldenLaeuft = false) } }
+        }
+    }
+
+    fun abmelden() {
+        konto?.abmelden()
+        cached = null
+        mutable.update { it.copy(angemeldet = false, email = null) }
+    }
+
+    fun kaufen(activity: android.app.Activity, produktId: String) {
+        val k = konto ?: return
+        if (!k.angemeldet) { mutable.update { it.copy(sheet = Sheet.ANMELDEN) }; return }
+        if (state.value.kaufLaeuft) return
+        mutable.update { it.copy(kaufLaeuft = true, kaufMeldung = null) }
+        viewModelScope.launch {
+            try {
+                val neu = k.kaufen(activity, produktId)
+                if (neu != null) mutable.update { it.copy(kaufMeldung = "Danke! Du hast jetzt ${Guthaben.analysenText(neu)}.") }
+            } catch (cancel: CancellationException) { throw cancel }
+            catch (e: Exception) { mutable.update { it.copy(kaufMeldung = errorMessage(e)) } }
+            finally { mutable.update { it.copy(kaufLaeuft = false) } }
+        }
+    }
+
+    /** Server-Fehler, die einen eigenen Bildschirm haben, statt einer Fehlermeldung. */
+    private fun fehler(e: Exception) {
+        when (e) {
+            is GuthabenLeer -> mutable.update { it.copy(sheet = Sheet.PAKETE, error = null) }
+            is AnmeldungNoetig -> { abmelden(); mutable.update { it.copy(sheet = Sheet.ANMELDEN, error = null) } }
+            else -> error(errorMessage(e))
+        }
+    }
+
+    fun sheet(sheet: Sheet?) { mutable.update { it.copy(sheet = sheet, error = null, kaufMeldung = null) }; if (sheet == null) { afterConsent = false; nachAnmeldung = false } }
     fun error(text: String) { mutable.update { it.copy(error = text) } }
     fun clearError() { mutable.update { it.copy(error = null) } }
     fun finishIntro() { store.introSeen = true; mutable.update { it.copy(showIntro = false) } }
@@ -206,7 +283,7 @@ class BriefampelViewModel @JvmOverloads constructor(
 
     /** Nur in der Debug-Testversion: Guthaben zum Ausprobieren auffüllen. */
     fun testGuthaben() {
-        if (!BuildConfig.DEBUG) return
+        if (!BuildConfig.DEBUG || konto != null) return
         store.guthaben = store.guthaben + 10
         mutable.update { it.copy(guthaben = store.guthaben) }
     }
@@ -276,6 +353,7 @@ class BriefampelViewModel @JvmOverloads constructor(
         val day = today()
         val cache = cached?.takeIf { it.first == input.fingerprint() && SystemClock.elapsedRealtime() - it.second < 300_000 }
         if (cache != null) { showAnalysis(cache.third, input); return }
+        if (konto != null && !konto.angemeldet) { nachAnmeldung = true; mutable.update { it.copy(sheet = Sheet.ANMELDEN, error = null) }; return }
         if (store.guthaben <= 0) { mutable.update { it.copy(sheet = Sheet.PAKETE, error = null) }; return }
         mutable.update { it.copy(loading = true, error = null) }
         val serial = ++workSerial
@@ -284,10 +362,10 @@ class BriefampelViewModel @JvmOverloads constructor(
                 val analysis = provider.analyze(input, day)
                 if (serial != workSerial) return@launch
                 cached = Triple(input.fingerprint(), SystemClock.elapsedRealtime(), analysis)
-                store.guthaben = store.guthaben - 1
+                if (konto == null) store.guthaben = store.guthaben - 1
                 showAnalysis(analysis, input)
             } catch (cancel: CancellationException) { throw cancel }
-            catch (e: Exception) { if (serial == workSerial) error(errorMessage(e)) }
+            catch (e: Exception) { if (serial == workSerial) fehler(e) }
             finally { if (serial == workSerial) mutable.update { it.copy(loading = false) } }
         }
     }
@@ -333,7 +411,7 @@ class BriefampelViewModel @JvmOverloads constructor(
             try {
                 provider.draft(s.input, s.result.analyse, s.keywords, s.tone, s.sender, today()).collect { text -> if (serial == workSerial) mutable.update { it.copy(reply = text) } }
             } catch (cancel: CancellationException) { throw cancel }
-            catch (e: Exception) { if (serial == workSerial) error(errorMessage(e)) }
+            catch (e: Exception) { if (serial == workSerial) fehler(e) }
             finally {
                 if (serial == workSerial) {
                     mutable.update { it.copy(writing = false) }
