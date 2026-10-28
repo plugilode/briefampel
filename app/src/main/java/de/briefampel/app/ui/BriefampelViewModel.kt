@@ -242,7 +242,8 @@ class BriefampelViewModel @JvmOverloads constructor(
     fun tone(tone: Tone) { mutable.update { it.copy(tone = tone) } }
     fun remove(id: String) { mutable.update { it.copy(input = it.input.copy(attachments = it.input.attachments.filterNot { f -> f.id == id })) } }
 
-    fun import(uris: List<Uri>, sharedText: String? = null) {
+    /** @param sofortPruefen nach dem Scannen oder Auswählen direkt prüfen: Brief rein, Ampel raus, ohne Extra-Tippen. */
+    fun import(uris: List<Uri>, sharedText: String? = null, sofortPruefen: Boolean = false) {
         if (state.value.loading || state.value.writing || state.value.importing) { error("Bitte den laufenden Vorgang zuerst beenden."); return }
         mutable.update { it.copy(importing = true, error = null, screen = Screen.INPUT, sheet = null, result = null, example = false, reply = "", showIntro = false) }
         viewModelScope.launch {
@@ -254,6 +255,7 @@ class BriefampelViewModel @JvmOverloads constructor(
                 }
                 input.validate()
                 mutable.update { it.copy(input = input) }
+                if (sofortPruefen) { mutable.update { it.copy(importing = false) }; analyze() }
             } catch (cancel: CancellationException) { throw cancel }
             catch (e: Exception) { error(errorMessage(e)) }
             finally { mutable.update { it.copy(importing = false) } }

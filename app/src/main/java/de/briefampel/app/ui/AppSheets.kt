@@ -121,7 +121,7 @@ private fun Settings(s: UiState, model: BriefampelViewModel) {
     }
     Text("Spielt nicht, wenn das Handy stumm ist oder gerade Musik läuft.", style = Schrift.TextKlein, color = c.tinteLeise)
     HorizontalDivider(color = c.linie)
-    Eyebrow("SPERRE & VERLAUF")
+    Eyebrow("SPERRE & MEINE BRIEFE")
     val context = androidx.compose.ui.platform.LocalContext.current
     val vorschau = LocalInspectionMode.current
     val biometrieMoeglich = remember(context) {
@@ -133,7 +133,7 @@ private fun Settings(s: UiState, model: BriefampelViewModel) {
         Switch(checked = s.biometrie, onCheckedChange = model::biometrie)
     }
     Text("${s.verlauf.size} ${if (s.verlauf.size == 1) "Brief" else "Briefe"} im Verlauf · verschlüsselt auf diesem Handy · bleiben, bis du sie löschst.", style = Schrift.TextKlein, color = c.tinteLeise)
-    ActionButton("Verlauf ansehen", model::verlaufOeffnen, primary = false)
+    ActionButton("Meine Briefe ansehen", model::verlaufOeffnen, primary = false)
     ActionButton("Jetzt sperren", model::sperren, primary = false)
     HorizontalDivider(color = c.linie)
     Eyebrow("KI-VERBINDUNG")

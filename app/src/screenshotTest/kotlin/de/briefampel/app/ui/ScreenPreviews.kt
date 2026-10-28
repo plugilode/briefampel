@@ -215,3 +215,6 @@ private fun verlaufBeispiel(): List<de.briefampel.app.data.VerlaufEintrag> {
 
 @PreviewTest @Preview(name = "32_Start_Guthaben_leer", widthDp = 412, heightDp = 915, locale = "de", showSystemUi = true)
 @Composable fun StartOhneGuthabenScreenshot() = Capture(base().copy(guthaben = 0))
+
+@PreviewTest @Preview(name = "33_Start_Meine_Briefe", widthDp = 412, heightDp = 915, locale = "de", showSystemUi = true)
+@Composable fun StartMeineBriefeScreenshot() = Capture(base().copy(verlauf = verlaufBeispiel(), configured = true, personalApi = true))

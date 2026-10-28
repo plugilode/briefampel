@@ -91,10 +91,10 @@ fun BriefampelApp(model: BriefampelViewModel) {
         val context = LocalContext.current
         val snackbar = remember { SnackbarHostState() }
         val scope = rememberCoroutineScope()
-        val files = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { if (it.isNotEmpty()) model.import(it) }
+        val files = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { if (it.isNotEmpty()) model.import(it, sofortPruefen = true) }
         val scanner = rememberLauncherForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { result ->
             if (result.resultCode == Activity.RESULT_OK) {
-                GmsDocumentScanningResult.fromActivityResultIntent(result.data)?.pages?.map { it.imageUri }?.let { model.import(it) }
+                GmsDocumentScanningResult.fromActivityResultIntent(result.data)?.pages?.map { it.imageUri }?.let { model.import(it, sofortPruefen = true) }
             }
         }
         val scan: () -> Unit = {
@@ -231,11 +231,76 @@ private fun Kopfzeile(s: UiState, model: BriefampelViewModel) {
             RundKnopf(Symbole.Zurueck, "Zurück", model::back, enabled = !s.importing)
         }
         Spacer(Modifier.weight(1f))
-        if (s.screen == Screen.INPUT) {
-            RundKnopf(Symbole.Verlauf, "Verlauf", model::verlaufOeffnen, enabled = !s.loading && !s.importing)
+        // Auf Ergebnis- und Antwortseite immer beschriftet erreichbar; auf dem Start übernimmt das die Karte „Meine Briefe“.
+        if (s.screen == Screen.RESULT || s.screen == Screen.REPLY) {
+            MeineBriefePille(s.verlauf.size, enabled = !s.loading && !s.writing && !s.importing, onClick = model::verlaufOeffnen)
             Spacer(Modifier.width(10.dp))
         }
-        RundKnopf(Symbole.Person, "Einstellungen", { model.sheet(Sheet.SETTINGS) }, enabled = !s.loading && !s.writing && !s.importing)
+        RundKnopf(Symbole.Zahnrad, "Einstellungen", { model.sheet(Sheet.SETTINGS) }, enabled = !s.loading && !s.writing && !s.importing)
+    }
+}
+
+/** Beschrifteter Zugang zu den geprüften Briefen: „Meine Briefe“ mit Anzahl, statt eines rätselhaften Symbols. */
+@Composable
+private fun MeineBriefePille(anzahl: Int, enabled: Boolean, onClick: () -> Unit) {
+    val c = LocalFarben.current
+    Surface(
+        onClick = onClick, enabled = enabled, shape = CircleShape, color = Color.Transparent, contentColor = c.tinte,
+        border = BorderStroke(1.dp, c.linie), modifier = Modifier.heightIn(min = 44.dp),
+    ) {
+        Row(Modifier.padding(start = 12.dp, end = 14.dp, top = 10.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(Symbole.Verlauf, null, Modifier.size(18.dp))
+            Spacer(Modifier.width(7.dp))
+            Text("Meine Briefe", style = Schrift.KnopfKlein)
+            if (anzahl > 0) {
+                Spacer(Modifier.width(7.dp))
+                Box(Modifier.background(c.knopf, CircleShape).padding(horizontal = 7.dp, vertical = 1.dp)) {
+                    Text("$anzahl", style = Schrift.Marke.copy(letterSpacing = 0.sp), color = c.aufKnopf)
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Auf dem Startbildschirm: die letzten geprüften Briefe direkt sichtbar, ein Tippen öffnet das Ergebnis.
+ * So ist ohne Erklärung klar, wo die alten Briefe liegen.
+ */
+@Composable
+private fun MeineBriefeKarte(s: UiState, model: BriefampelViewModel) {
+    val c = LocalFarben.current
+    Surface(color = c.flaeche, shape = RoundedCornerShape(22.dp), border = BorderStroke(1.dp, c.linie), modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(top = 16.dp, bottom = 6.dp)) {
+            Row(Modifier.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                Icon(Symbole.Verlauf, null, tint = c.tinte, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Meine Briefe", style = Schrift.KnopfKlein.copy(fontSize = 17.sp, fontWeight = FontWeight.Bold), color = c.tinte, modifier = Modifier.weight(1f))
+                Text("${s.verlauf.size} gespeichert", style = Schrift.Daten.copy(fontSize = 12.sp), color = c.tinteHinweis)
+            }
+            s.verlauf.take(2).forEach { e ->
+                Row(
+                    Modifier.fillMaxWidth().selectable(false, role = Role.Button) { model.eintragOeffnen(e.id) }
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Box(Modifier.size(10.dp).background(Signal.farbe(e.analyse.ampel), CircleShape))
+                    Spacer(Modifier.width(12.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(e.analyse.titel, style = Schrift.KnopfKlein, color = c.tinte, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                        Text(
+                            listOfNotNull(e.analyse.absender, Fristen.format(tagDes(e.geprueftAm))).joinToString(" · "),
+                            style = Schrift.Fuss, color = c.tinteHinweis, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                        )
+                    }
+                    Icon(Symbole.Weiter, null, tint = c.tinteHinweis, modifier = Modifier.size(16.dp))
+                }
+            }
+            Text(
+                if (s.verlauf.size > 2) "Alle ${s.verlauf.size} Briefe ansehen" else "Alle ansehen",
+                style = Schrift.KnopfKlein, color = c.tinteLeise,
+                modifier = Modifier.fillMaxWidth().selectable(false, role = Role.Button, onClick = model::verlaufOeffnen).padding(horizontal = 16.dp, vertical = 12.dp),
+            )
+        }
     }
 }
 
@@ -278,6 +343,9 @@ private fun Eingang(s: UiState, model: BriefampelViewModel, scan: () -> Unit, fi
             Spacer(Modifier.height(28.dp))
             if (s.input.hasContent || s.importing) {
                 ImUmschlag(s, model)
+                Spacer(Modifier.height(20.dp))
+            } else if (s.verlauf.isNotEmpty() && !s.loading) {
+                MeineBriefeKarte(s, model)
                 Spacer(Modifier.height(20.dp))
             }
             if (!s.configured) {
@@ -456,8 +524,8 @@ private fun Ergebnis(
             Eyebrow(
                 when {
                     s.example -> "BEISPIEL · KEIN EIGENER BRIEF"
-                    s.ausVerlauf && eintrag != null -> "AUS DEINEM VERLAUF · GEPRÜFT ${Fristen.format(tagDes(eintrag.geprueftAm))}"
-                    else -> "GEPRÜFT ${heute.format(DateTimeFormatter.ofPattern("dd.MM."))}"
+                    s.ausVerlauf && eintrag != null -> "AUS „MEINE BRIEFE“ · GEPRÜFT ${Fristen.format(tagDes(eintrag.geprueftAm))}"
+                    else -> "GEPRÜFT ${heute.format(DateTimeFormatter.ofPattern("dd.MM."))} · IN „MEINE BRIEFE“ GESPEICHERT"
                 },
                 if (s.example) c.gelbText else c.tinteHinweis,
                 Modifier.padding(top = 4.dp),
@@ -509,7 +577,7 @@ private fun Ergebnis(
                 GespeicherteAntworten(it, copy, share)
             }
             if (s.ausVerlauf && eintrag != null) Text(
-                "Aus dem Verlauf löschen", style = Schrift.KnopfKlein, color = c.rotText, textAlign = TextAlign.Center,
+                "Aus „Meine Briefe“ löschen", style = Schrift.KnopfKlein, color = c.rotText, textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth().padding(top = 12.dp).clip(CircleShape)
                     .selectable(false, role = Role.Button) { loeschen = true }.padding(vertical = 14.dp),
             )

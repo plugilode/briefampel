@@ -86,7 +86,10 @@ Reihenfolge, damit nichts blockiert:
 5. In der Play Console die **Produkte anlegen** als „Verbrauchsartikel“: `analysen_10` (1,99 €), `analysen_30` (4,99 €), `analysen_100` (9,99 €). Das Abo kommt später.
 6. Mir sagen, wenn das steht. Dann brauche ich die `google-services.json` (die ist nicht geheim, kommt aber nicht in Git) und richte den Rest mit dir ein.
 
-Steuern: Einnahmen sind steuerpflichtig. Für den Anfang reicht meist die Kleinunternehmerregelung; Google führt die Umsatzsteuer gegenüber Käufern in der EU selbst ab. Im Zweifel kurz einen Steuerberater fragen.
+**Wohnsitz Mexiko (Stand 28.10.2026):**
+- Google-Konto und Zahlungsprofil mit **Land Mexiko** anlegen. Das Land eines Zahlungsprofils lässt sich später nicht ändern, und die Karte muss zum Profil-Land passen. Bei mexikanischen Karten in der Banking-App **„compras en línea“ und „compras internacionales“** freischalten.
+- **Steuern:** Einnahmen sind in Mexiko steuerpflichtig. Dafür braucht es in der Regel einen RFC beim SAT, und Google kann Steuern einbehalten. Bitte mit einem *contador* klären. Die Mehrwertsteuer der Käufer in der EU führt Google Play selbst ab.
+- **Datenschutz:** Die App richtet sich an Nutzer in Deutschland und der EU, deshalb gilt die DSGVO. Nötig sind eine Datenschutzerklärung und Anbieterangaben. Der Serverstandort Frankfurt passt dazu.
 
 ## Was ich baue (geht schon vor deinen Konten)
 

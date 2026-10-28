@@ -48,7 +48,7 @@ internal fun VerlaufAnsicht(s: UiState, model: BriefampelViewModel) {
     var allesLoeschen by remember { mutableStateOf(false) }
     val heute = LocalDate.now(zone)
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).padding(bottom = 24.dp)) {
-        Eyebrow("DEIN VERLAUF · NUR AUF DIESEM HANDY", modifier = Modifier.padding(top = 4.dp))
+        Eyebrow("MEINE BRIEFE · NUR AUF DIESEM HANDY", modifier = Modifier.padding(top = 4.dp))
         Text("Alles, was ich\nfür dich gelesen\nhabe.", style = Schrift.Anzeige.copy(fontSize = 34.sp, lineHeight = 35.sp), color = c.tinte, modifier = Modifier.padding(top = 14.dp))
         Text(
             if (s.verlauf.isEmpty()) "Noch leer." else "${s.verlauf.size} ${if (s.verlauf.size == 1) "Brief" else "Briefe"} · verschlüsselt gespeichert · Originale werden nicht aufbewahrt",
@@ -68,7 +68,7 @@ internal fun VerlaufAnsicht(s: UiState, model: BriefampelViewModel) {
                 s.verlauf.forEach { e -> Eintrag(e, heute) { model.eintragOeffnen(e.id) } }
             }
             Text(
-                "Ganzen Verlauf löschen", style = Schrift.KnopfKlein, color = c.rotText, textAlign = TextAlign.Center,
+                "Alle Briefe löschen", style = Schrift.KnopfKlein, color = c.rotText, textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth().padding(top = 18.dp).clip(CircleShape)
                     .selectable(false, role = Role.Button) { allesLoeschen = true }.padding(vertical = 14.dp),
             )
@@ -76,7 +76,7 @@ internal fun VerlaufAnsicht(s: UiState, model: BriefampelViewModel) {
     }
     if (allesLoeschen) AlertDialog(
         onDismissRequest = { allesLoeschen = false },
-        title = { Text("Ganzen Verlauf löschen?") },
+        title = { Text("Alle Briefe löschen?") },
         text = { Text("Alle ${s.verlauf.size} geprüften Briefe und deine Antworten verschwinden von diesem Handy. Das lässt sich nicht rückgängig machen.") },
         confirmButton = { TextButton(onClick = { allesLoeschen = false; model.verlaufLoeschen() }) { Text("Alles löschen", color = c.rotText) } },
         dismissButton = { TextButton(onClick = { allesLoeschen = false }) { Text("Behalten", color = c.tinte) } },
