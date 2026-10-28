@@ -13,3 +13,4 @@
 *.jks
 /app/google-services.json
 /app/src/screenshotTestDebug/reference/
+/ausgabe/
