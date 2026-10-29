@@ -31,6 +31,29 @@ class BriefampelUiTest {
         RuntimeEnvironment.getApplication().getSharedPreferences("briefampel_private", Context.MODE_PRIVATE).edit().clear().putString("sprache", "de").commit()
     }
 
+    @Test fun `erster Start zeigt erst die Sprachwahl und danach das lange Intro`() {
+        RuntimeEnvironment.getApplication().getSharedPreferences("briefampel_private", Context.MODE_PRIVATE).edit().clear().commit()
+        val model = BriefampelViewModel(RuntimeEnvironment.getApplication(), FakeProvider(), false, zugang = OffenerZugang, verlauf = FluechtigerVerlauf(), konto = null)
+        compose.setContent { BriefampelApp(model) }
+        compose.onNodeWithText("Deutsch").performClick()
+        compose.waitForIdle()
+        assertTrue(model.state.value.showIntro)
+        compose.onNodeWithText("Überspringen").assertExists()
+    }
+
+    @Test fun `nach dem Update kommt nach der Sprachwahl das kurze Intro`() {
+        RuntimeEnvironment.getApplication().getSharedPreferences("briefampel_private", Context.MODE_PRIVATE).edit().clear().putBoolean("intro_seen", true).commit()
+        val model = BriefampelViewModel(RuntimeEnvironment.getApplication(), FakeProvider(), false, zugang = OffenerZugang, verlauf = FluechtigerVerlauf(), konto = null)
+        compose.setContent { BriefampelApp(model) }
+        compose.onNodeWithText("Liest zuerst. Für dich.").assertDoesNotExist()
+        // Uhr anhalten, sonst spult der Test die 2-Sekunden-Animation sofort durch.
+        compose.mainClock.autoAdvance = false
+        compose.onNodeWithText("Deutsch").performClick()
+        compose.mainClock.advanceTimeBy(300)
+        assertTrue(model.state.value.kurzIntro)
+        compose.onNodeWithText("Liest zuerst. Für dich.").assertExists()
+    }
+
     @Test fun `own text import stays local and configuration is clearly disclosed`() {
         val model = BriefampelViewModel(RuntimeEnvironment.getApplication(), FakeProvider(), false, zugang = OffenerZugang, verlauf = FluechtigerVerlauf())
         model.finishIntro()
