@@ -75,8 +75,8 @@ private fun Consent(s: UiState, model: BriefampelViewModel) {
     val c = LocalFarben.current
     Eyebrow(sag("EINMAL, BEVOR ICH LESE"))
     Text(sag("Dein Brief bleibt\ndein Brief."), style = Schrift.Anzeige, color = c.tinte)
-    Text(if (s.serverModus) sag("Damit ich ihn zusammenfassen kann, wird dein Brief über den Briefampel-Server in Frankfurt an Google Gemini gesendet. Das gilt auch für Bilder, PDFs und enthaltene persönliche Daten. Der Server speichert nichts davon.") else sag("Damit ich ihn zusammenfassen kann, wird dein Brief direkt an die Google Gemini Developer API gesendet. Das gilt auch für Bilder, PDFs und enthaltene persönliche Daten."), style = Schrift.Text, color = c.tinte)
-    Info(sag("GEHT AN"), if (s.serverModus) sag("Briefampel-Server (Frankfurt) · danach Google Gemini") else sag("Google Gemini Developer API · keine festgelegte EU-Region"))
+    Text(when { s.serverModus && !s.kiMistral -> sag("Damit ich ihn zusammenfassen kann, wird dein Brief über den Briefampel-Server in Frankfurt an Google Gemini gesendet. Das gilt auch für Bilder, PDFs und enthaltene persönliche Daten. Der Server speichert nichts davon."); s.serverModus -> sag("Damit ich ihn zusammenfassen kann, wird dein Brief über den Briefampel-Server in Frankfurt an Mistral AI in Paris gesendet. Das gilt auch für Bilder, PDFs und enthaltene persönliche Daten. Der Server speichert nichts davon."); s.kiMistral -> sag("Damit ich ihn zusammenfassen kann, wird dein Brief direkt an Mistral AI in Paris (EU) gesendet. Das gilt auch für Bilder, PDFs und enthaltene persönliche Daten."); else -> sag("Damit ich ihn zusammenfassen kann, wird dein Brief direkt an die Google Gemini Developer API gesendet. Das gilt auch für Bilder, PDFs und enthaltene persönliche Daten.") }, style = Schrift.Text, color = c.tinte)
+    Info(sag("GEHT AN"), when { s.serverModus && !s.kiMistral -> sag("Briefampel-Server (Frankfurt) · danach Google Gemini"); s.serverModus -> sag("Briefampel-Server (Frankfurt) · danach Mistral AI (Paris, EU)"); s.kiMistral -> sag("Mistral AI · Paris, EU"); else -> sag("Google Gemini Developer API · keine festgelegte EU-Region") })
     Info(sag("AUF DEINEM HANDY"), sag("Absenderdaten, Einwilligung und „Meine Briefe“ (verschlüsselt) werden lokal gespeichert. Originale bleiben nur für die aktuelle Sitzung im Arbeitsspeicher."))
     Info(sag("BEIM ANBIETER"), sag("Für die Verarbeitung und Aufbewahrung gelten die Bedingungen des eingerichteten Google-Dienstes. Es gibt keine Zusage, dass keinerlei technische Protokolle entstehen."))
     Info(sag("KOSTET"), sag("1 Analyse aus deinem Guthaben (noch %d). Darin sind bis zu 3 Antwortentwürfe zu diesem Brief enthalten. Schlägt die Prüfung fehl, wird nichts abgezogen.", s.guthaben) +
@@ -95,14 +95,15 @@ private fun Privacy(s: UiState, model: BriefampelViewModel) {
     Eyebrow(sag("DATEN & KONTROLLE"))
     Text(sag("Was mit deinem\nBrief passiert."), style = Schrift.Titel, color = c.tinte)
     Text(sag("Vor der Zustimmung wird kein Brief an die KI gesendet. Nach deiner Zustimmung werden nur die zur Prüfung ausgewählten Inhalte übertragen; beim Antworten zusätzlich deine Stichworte, der gewählte Ton und die eingetragenen Absenderdaten."), style = Schrift.Text, color = c.tinte)
-    Info(sag("VERARBEITUNG"), if (s.personalApi) sag("Direkt über die Google Gemini Developer API mit deinem eigenen API-Projekt. Die App legt dabei keine EU-Verarbeitungsregion fest. Es gelten die Daten- und Abrechnungsbedingungen deines API-Projekts.") else sag("Über den Briefampel-Server (Firebase, Frankfurt) an Google Gemini. Der Server speichert keine Briefinhalte, nur dein Guthaben und Zähler."))
+    Info(sag("VERARBEITUNG"), if (s.personalApi && s.kiMistral) sag("Direkt an Mistral AI in Paris (EU) mit deinem eigenen API-Schlüssel. Es gelten die Daten- und Abrechnungsbedingungen deines Mistral-Kontos.") else if (s.personalApi) sag("Direkt über die Google Gemini Developer API mit deinem eigenen API-Projekt. Die App legt dabei keine EU-Verarbeitungsregion fest. Es gelten die Daten- und Abrechnungsbedingungen deines API-Projekts.") else if (s.kiMistral) sag("Über den Briefampel-Server (Firebase, Frankfurt) an Mistral AI in Paris (EU). Der Server speichert keine Briefinhalte, nur dein Guthaben und Zähler.") else sag("Über den Briefampel-Server (Firebase, Frankfurt) an Google Gemini. Der Server speichert keine Briefinhalte, nur dein Guthaben und Zähler."))
     Info(sag("VERLAUF"), sag("Ergebnisse geprüfter Briefe und deine Antworten werden im Verlauf gespeichert: nur auf diesem Handy, AES-256-verschlüsselt mit einem Schlüssel aus dem Android Keystore, geschützt durch deine PIN. Originalseiten werden nicht gespeichert. Einträge bleiben, bis du sie löschst. „PIN vergessen“ löscht den ganzen Verlauf."))
     Info(sag("LOKAL"), sag("Importierte Originale bleiben nur im Arbeitsspeicher. PDFs werden zur Seitenprüfung kurz im privaten Cache geöffnet und danach gelöscht. Android, der Dateianbieter und der Dokument-Scanner können eigene temporäre Kopien verwalten."))
     Info(sag("EINSTELLUNGEN"), sag("Absender, Darstellung, Sprache und Zustimmung bleiben lokal auf diesem Gerät. App-Backups sind deaktiviert. Du kannst Absenderdaten löschen und die Zustimmung für künftige Anfragen widerrufen."))
-    if (s.personalApiSupported) Info(sag("PERSÖNLICHER API-SCHLÜSSEL"), sag("Nur die Testversion unterstützt einen eigenen Schlüssel. Er wird mit einem Schlüssel aus Android Keystore verschlüsselt auf diesem Gerät gespeichert und nur zur Anmeldung bei der Gemini API übertragen. Du kannst ihn in den Einstellungen löschen."))
+    if (s.personalApiSupported) Info(sag("PERSÖNLICHER API-SCHLÜSSEL"), sag("Nur die Testversion unterstützt einen eigenen Schlüssel. Er wird mit einem Schlüssel aus Android Keystore verschlüsselt auf diesem Gerät gespeichert und nur zur Anmeldung bei der KI übertragen. Du kannst ihn in den Einstellungen löschen."))
     Info(sag("KI & GRENZEN"), sag("KI-Antworten können Fehler enthalten. Fristen im Original und fertige Entwürfe immer prüfen."))
     TextButton(onClick = { uri.openUri("https://firebase.google.com/support/privacy") }) { Text(sag("Google: Datenschutz und Verarbeitung")) }
-    if (s.personalApiSupported) TextButton(onClick = { uri.openUri("https://ai.google.dev/gemini-api/terms") }) { Text(sag("Gemini API: Daten- und Nutzungsbedingungen")) }
+    if (!s.kiMistral) TextButton(onClick = { uri.openUri("https://ai.google.dev/gemini-api/terms") }) { Text(sag("Gemini API: Daten- und Nutzungsbedingungen")) }
+    if (s.kiMistral) TextButton(onClick = { uri.openUri("https://mistral.ai/terms") }) { Text(sag("Mistral AI: Datenschutz und Bedingungen")) }
     Text(sag("Diese technische Übersicht ersetzt keine veröffentlichte Datenschutzerklärung des Betreibers. Diese Vorschau ist noch nicht für den Play Store freigegeben."), style = Schrift.TextKlein, color = c.tinteLeise)
     ActionButton(sag("Zurück"), { model.sheet(Sheet.SETTINGS) }, primary = false)
 }
@@ -141,7 +142,7 @@ private fun Settings(s: UiState, model: BriefampelViewModel) {
     HorizontalDivider(color = c.linie)
     if (s.serverModus) Konto(s, model)
     else Eyebrow(sag("KI-VERBINDUNG"))
-    if (!s.serverModus) Text(when { s.personalApi -> sag("Dein Gemini-Schlüssel ist hinterlegt. Die Verbindung wird bei deiner nächsten Prüfung getestet."); s.configured -> sag("Firebase ist eingerichtet. Die Verbindung wird bei deiner nächsten Prüfung verwendet."); s.personalApiSupported -> sag("Hinterlege deinen eigenen Gemini-API-Schlüssel, um auf diesem Handy ohne Firebase zu testen."); else -> sag("Die Vorschau funktioniert. Eigene Briefe können erst nach Einrichtung von Firebase analysiert werden.") }, style = Schrift.Text, color = c.tinte)
+    if (!s.serverModus) Text(when { s.personalApi -> sag("Dein %s-Schlüssel ist hinterlegt. Die Verbindung wird bei deiner nächsten Prüfung getestet.", s.kiName); s.configured -> sag("Firebase ist eingerichtet. Die Verbindung wird bei deiner nächsten Prüfung verwendet."); s.personalApiSupported -> sag("Hinterlege deinen eigenen %s-API-Schlüssel, um auf diesem Handy ohne Firebase zu testen.", s.kiName); else -> sag("Die Vorschau funktioniert. Eigene Briefe können erst nach Einrichtung von Firebase analysiert werden.") }, style = Schrift.Text, color = c.tinte)
     if (s.serverModus) Unit
     else if (s.personalApiSupported) PersonalApiSettings(s, model)
     else if (!s.configured) Text(sag("Einrichtung für den Entwickler: README.md im Projekt."), style = Schrift.TextKlein, color = c.tinteLeise)
@@ -173,15 +174,15 @@ private fun PersonalApiSettings(s: UiState, model: BriefampelViewModel) {
     val uri = LocalUriHandler.current
     var key by remember { mutableStateOf("") }
     LaunchedEffect(s.apiMessage) { if (s.apiMessage == s.sprache.text("Schlüssel gespeichert. Die Verbindung wird bei der nächsten Prüfung getestet.")) key = "" }
-    Eyebrow(sag("GEMINI API · PERSÖNLICHER PIXEL-TEST"))
-    OutlinedTextField(key, { key = it.take(512) }, label = { Text(sag("Gemini-API-Schlüssel")) }, singleLine = true,
+    Eyebrow(sag("%s API · PERSÖNLICHER TEST", s.kiName.uppercase()))
+    OutlinedTextField(key, { key = it.take(512) }, label = { Text(sag("%s-API-Schlüssel", s.kiName)) }, singleLine = true,
         enabled = !s.configuringApi, visualTransformation = PasswordVisualTransformation(),
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password), modifier = Modifier.fillMaxWidth())
     ActionButton(if (s.configuringApi) sag("Wird gespeichert …") else sag("Schlüssel speichern"), { model.savePersonalKey(key) }, enabled = key.trim().length >= 20 && !s.configuringApi)
     if (s.personalApi) ActionButton(sag("API-Schlüssel löschen"), model::clearPersonalKey, primary = false, enabled = !s.configuringApi)
     s.apiMessage?.let { Text(it, style = Schrift.TextKlein, color = c.tinteLeise) }
-    TextButton(onClick = { uri.openUri("https://aistudio.google.com/apikey") }) { Text(sag("Schlüssel in Google AI Studio erstellen")) }
-    Text(sag("Der Schlüssel bleibt auf diesem Gerät verschlüsselt gespeichert. Die API wird über dein Google-Projekt abgerechnet. Keine EU-Region festgelegt. Für erste Tests bitte Beispieldaten verwenden."), style = Schrift.TextKlein, color = c.tinteLeise)
+    TextButton(onClick = { uri.openUri(if (s.kiMistral) "https://console.mistral.ai/api-keys" else "https://aistudio.google.com/apikey") }) { Text(if (s.kiMistral) sag("Schlüssel in der Mistral-Konsole erstellen") else sag("Schlüssel in Google AI Studio erstellen")) }
+    Text(if (s.kiMistral) sag("Der Schlüssel bleibt auf diesem Gerät verschlüsselt gespeichert. Abgerechnet wird über dein Mistral-Konto. Verarbeitung in der EU. Im Mistral-Konto das Training mit deinen Daten ausschalten.") else sag("Der Schlüssel bleibt auf diesem Gerät verschlüsselt gespeichert. Die API wird über dein Google-Projekt abgerechnet. Keine EU-Region festgelegt. Für erste Tests bitte Beispieldaten verwenden."), style = Schrift.TextKlein, color = c.tinteLeise)
 }
 
 @Composable

@@ -362,7 +362,7 @@ private fun Eingang(s: UiState, model: BriefampelViewModel, scan: () -> Unit, fi
                     Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Eyebrow(sag("VORSCHAU · KI NOCH NICHT VERBUNDEN"))
                         Text(
-                            if (s.personalApiSupported) sag("Sieh dir die Beispiele an oder hinterlege deinen Gemini-Schlüssel in den Einstellungen.")
+                            if (s.personalApiSupported) sag("Sieh dir die Beispiele an oder hinterlege deinen %s-Schlüssel in den Einstellungen.", s.kiName)
                             else sag("Sieh dir die Beispiele an. Für eigene Briefe muss der KI-Dienst eingerichtet werden."),
                             style = Schrift.TextKlein, color = c.tinteLeise,
                         )
@@ -824,7 +824,7 @@ private fun Puls() {
 }
 
 /**
- * Bis das erste Wort von Gemini da ist: ein Blatt, auf dem ein Stift Zeile für Zeile andeutet, dass geschrieben wird.
+ * Bis das erste Wort von der KI da ist: ein Blatt, auf dem ein Stift Zeile für Zeile andeutet, dass geschrieben wird.
  * So sieht man sofort, dass die App arbeitet.
  */
 @Composable

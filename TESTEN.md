@@ -44,18 +44,36 @@ SHA-256: `5c3826f0151ec1ebd8a3dc4e8916bec119f82912062edbbdd8689a4254050309`
 - [ ] Beispiele landen nicht im Verlauf.
 - [ ] „PIN vergessen?“ löscht nach Rückfrage PIN und Verlauf.
 
-## 3. Mit echter KI testen (eigener Gemini-Schlüssel)
+## 3. Mit echter KI testen
 
-1. Der Schlüssel aus `local.properties` (`briefampel.geminiKey=…`) ist in der Test-APK schon eingebaut und wird beim ersten Start übernommen. Nichts eintippen nötig.
-2. Anderen Schlüssel nutzen: **Einstellungen** (Personen-Symbol oben rechts) → **Gemini-API-Schlüssel** → einfügen → **Schlüssel speichern**.
+Standard ist Gemini. In `local.properties`:
+
+```
+briefampel.geminiKey=DEIN_SCHLÜSSEL
+```
+
+Mistral (Paris, EU) statt Gemini: `briefampel.ki=mistral` und `briefampel.mistralKey=…` eintragen. Das Mistral-Konto braucht mindestens 10 $ Guthaben.
+
+1. Der Schlüssel ist in der Test-APK schon eingebaut und wird beim ersten Start übernommen. Nichts eintippen nötig.
+2. Anderen Schlüssel nutzen: **Einstellungen** (Zahnrad oben rechts) → **Gemini-API-Schlüssel** (bzw. Mistral) → einfügen → **Schlüssel speichern**.
 3. Einen eigenen Testbrief laden und **Ampel prüfen**. Vor dem ersten Aufruf erscheint die Einwilligung.
 4. Danach: **Antwort schreiben**, Stichworte wählen, Ton wählen, schreiben lassen, **Stopp** testen, **Kopieren** und **Teilen**.
 
 Wichtig:
 - Zum Start erfundene oder geschwärzte Briefe verwenden, keine echten persönlichen Daten.
-- Mit einem kostenlosen Schlüssel kann Google die Inhalte zur Produktverbesserung verwenden. Für echte Briefe ein Projekt mit Abrechnung nutzen und die Gemini-Bedingungen prüfen.
+- Für echte Briefe ein Google-Projekt mit Abrechnung nutzen; mit einem kostenlosen Schlüssel kann Google Inhalte zur Produktverbesserung verwenden. Bei Mistral das Training im Konto ausschalten.
 - Der Schlüssel bleibt verschlüsselt auf dem Handy. Nicht in Chats oder ins Repository schreiben.
-- Das Modell ist auf `gemini-3.5-flash` voreingestellt. Ob dein Projekt Zugriff darauf hat, zeigt erst der erste echte Aufruf. Bei einem Fehler: Modell beim Bauen mit `-Pbriefampel.model=…` ändern.
+- Modelle: `gemini-3.5-flash`, bei Überlastung `gemini-3.5-flash-lite`. Bei Mistral: `mistral-small-latest` und `mistral-medium-latest`, PDFs vorher durch Mistrals Texterkennung.
+
+### Gemini und Mistral vergleichen
+
+Mit beiden Schlüsseln in `local.properties` schickt dieser Befehl fünf typische Testbriefe an beide KIs und schreibt eine Tabelle nach `briefe-test-ergebnis.md`:
+
+```bash
+cd functions && VERGLEICH=1 npx vitest run test/vergleich.test.ts
+```
+
+Eigene Briefe (PDF, JPG, PNG) dazu in den Ordner `briefe-test/` legen. Ordner und Ergebnis kommen nie nach GitHub.
 
 ## 4. Was noch nicht geprüft ist
 

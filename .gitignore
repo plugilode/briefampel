@@ -17,3 +17,7 @@
 /functions/node_modules/
 /functions/lib/
 /.firebase/
+
+# Eigene Testbriefe und Ergebnisse des KI-Vergleichs (nie hochladen)
+/briefe-test/
+/briefe-test-ergebnis.md

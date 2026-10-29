@@ -8,21 +8,37 @@ import { defineInt, defineSecret, defineString } from "firebase-functions/params
 import { onRequest } from "firebase-functions/v2/https";
 import { Abhaengigkeiten, antworten, guthaben, kaufen, pruefen } from "./api";
 import { PlayKaufPruefer, geminiMitSchluessel } from "./dienste";
+import { mistralMitSchluessel } from "./mistral";
 import { FirestoreSpeicher } from "./firestore";
 
 initializeApp();
 
-const GEMINI_SCHLUESSEL = defineSecret("GEMINI_SCHLUESSEL");
-const MODELLE = defineString("BRIEFAMPEL_MODELLE", { default: "gemini-3.8-flash,gemini-3.5-flash-lite" });
+/** Schlüssel des gewählten KI-Anbieters, nur im Secret Manager. */
+const KI_SCHLUESSEL = defineSecret("KI_SCHLUESSEL");
+/** "gemini" (Standard) oder "mistral" (Paris, EU). Die App muss mit briefampel.ki gleich gebaut sein. */
+const KI = defineString("BRIEFAMPEL_KI", { default: "gemini" });
+/** Leer = Standardmodelle des Anbieters. Erstes Modell zuerst, die weiteren bei Überlastung. */
+const MODELLE = defineString("BRIEFAMPEL_MODELLE", { default: "" });
+const STANDARD_MODELLE: Record<string, string> = {
+  mistral: "mistral-small-latest,mistral-medium-latest",
+  gemini: "gemini-3.8-flash,gemini-3.5-flash-lite",
+};
 const TAGESLIMIT = defineInt("BRIEFAMPEL_TAGESLIMIT", { default: 2000 });
 const PAKETNAME = defineString("BRIEFAMPEL_PAKET", { default: "de.briefampel.app" });
 const APPCHECK = defineString("BRIEFAMPEL_APPCHECK", { default: "pflicht" });
+
+function kiAufruf() {
+  const anbieter = KI.value() === "mistral" ? "mistral" : "gemini";
+  const modelle = (MODELLE.value() || STANDARD_MODELLE[anbieter]).split(",").map((m) => m.trim()).filter(Boolean);
+  const schluessel = () => KI_SCHLUESSEL.value();
+  return anbieter === "gemini" ? geminiMitSchluessel(schluessel, modelle) : mistralMitSchluessel({ schluessel, modelle });
+}
 
 let abhaengigkeiten: Abhaengigkeiten | undefined;
 function deps(): Abhaengigkeiten {
   abhaengigkeiten ??= {
     speicher: new FirestoreSpeicher(getFirestore()),
-    gemini: geminiMitSchluessel(() => GEMINI_SCHLUESSEL.value(), MODELLE.value().split(",").map((m) => m.trim()).filter(Boolean)),
+    gemini: kiAufruf(),
     kauf: new PlayKaufPruefer(PAKETNAME.value()),
     tageslimit: TAGESLIMIT.value(),
     tag: () => new Date().toISOString().slice(0, 10).replace(/-/g, ""),
@@ -57,7 +73,7 @@ async function anmelden(kopf: (n: string) => string | undefined): Promise<string
  * Es wird nie ein Briefinhalt gespeichert oder protokolliert, nur Weg, Status und Dauer.
  */
 export const api = onRequest(
-  { region: "europe-west3", secrets: [GEMINI_SCHLUESSEL], timeoutSeconds: 180, memory: "512MiB", maxInstances: 20, concurrency: 40 },
+  { region: "europe-west3", secrets: [KI_SCHLUESSEL], timeoutSeconds: 180, memory: "512MiB", maxInstances: 20, concurrency: 40 },
   async (req, res) => {
     const start = Date.now();
     const weg = req.path.replace(/\/+$/, "");
