@@ -26,12 +26,14 @@ android {
         applicationId = "de.briefampel.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 4
-        versionName = "0.4.0"
+        versionCode = 5
+        versionName = "0.5.0"
         buildConfigField("String", "AI_MODEL", "\"${einstellung("briefampel.model", "gemini-3.5-flash")}\"")
         buildConfigField("String", "AI_MODEL_FALLBACK", "\"${einstellung("briefampel.fallbackModel", "gemini-3.5-flash-lite")}\"")
         // Adresse des eigenen Servers (Firebase Functions), z. B. https://europe-west3-PROJEKT.cloudfunctions.net/api
         buildConfigField("String", "SERVER_URL", "\"${einstellung("briefampel.server", "")}\"")
+        // KI: gemini (Standard) oder mistral (Paris, EU). Gilt für die Test-APK und für die Texte zum Server.
+        buildConfigField("String", "AI_ANBIETER", "\"${einstellung("briefampel.ki", "gemini")}\"")
         buildConfigField("String", "AI_REGION", "\"${einstellung("briefampel.region", "eu")}\"")
     }
 
@@ -39,10 +41,12 @@ android {
         debug {
             // Nur für die eigene Test-APK: ein Schlüssel aus local.properties wird beim ersten Start übernommen.
             buildConfigField("String", "TEST_GEMINI_KEY", "\"${einstellung("briefampel.geminiKey", "")}\"")
+            buildConfigField("String", "TEST_MISTRAL_KEY", "\"${einstellung("briefampel.mistralKey", "")}\"")
         }
         release {
             // Niemals einen Schlüssel in eine Version für andere Nutzer einbauen.
             buildConfigField("String", "TEST_GEMINI_KEY", "\"\"")
+            buildConfigField("String", "TEST_MISTRAL_KEY", "\"\"")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")

@@ -60,6 +60,9 @@ data class UiState(
     val eintragId: String? = null,
     val ausVerlauf: Boolean = false,
     val sprache: Sprache = Sprache.DE,
+    /** Welche KI die Briefe liest, für ehrliche Datenschutztexte. */
+    val kiName: String = "Gemini",
+    val kiMistral: Boolean = false,
     /** Erster Start: Sprache wählen, bevor irgendetwas anderes kommt. */
     val spracheWaehlen: Boolean = false,
     /** Store-Version: Guthaben und KI laufen über den eigenen Server, mit Google-Konto. */
@@ -96,7 +99,9 @@ class BriefampelViewModel @JvmOverloads constructor(
         sperre = when { !zugang.aktiv -> Sperre.OFFEN; !zugang.eingerichtet -> Sperre.EINRICHTEN; else -> Sperre.GESPERRT },
         biometrie = zugang.biometrie,
         serverModus = konto != null, angemeldet = konto?.angemeldet == true, email = konto?.email,
-        sprache = Sprache.von(store.sprache) ?: Sprache.vomGeraet(), spracheWaehlen = store.sprache == null))
+        sprache = Sprache.von(store.sprache) ?: Sprache.vomGeraet(), spracheWaehlen = store.sprache == null,
+        kiName = (if (konto != null) KiAnbieter.gewaehlt else personalApi.anbieter).anzeige,
+        kiMistral = (if (konto != null) KiAnbieter.gewaehlt else personalApi.anbieter) == KiAnbieter.MISTRAL))
     val state = mutable.asStateFlow()
     private var work: Job? = null
     private var workSerial = 0

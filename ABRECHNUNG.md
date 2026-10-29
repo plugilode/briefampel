@@ -27,6 +27,9 @@ Schätzung für einen Brief mit 3 Seiten: Die Prüfung hat etwa 6.000 Token Eing
 | Flash 2026 | ≈ 1,4 ct | ≈ 1,5 ct | **≈ 3 ct** |
 | Flash ab 2027 | ≈ 2,8 ct | ≈ 3,1 ct | **≈ 6 ct** |
 | Flash-Lite | ≈ 0,8 ct | ≈ 0,9 ct | ≈ 1,7 ct |
+| Mistral Small (wahlweise) | ≈ 0,3 ct | ≈ 0,3 ct | **≈ 0,6 ct** |
+
+**Mistral (Paris, EU)** ist seit Version 0.5 eingebaut und per Einstellung wählbar; Standard bleibt Gemini, weil Mistral mindestens 10 $ Vorkasse verlangt. Vorteile von Mistral: Datenschutz (EU-Firma, kein US-Konzern) und etwa 5-mal günstiger. Gerechnet mit 0,20 $ Eingabe und 0,60 $ Ausgabe pro Million Token, also eher hoch angesetzt; die Vergleichsseiten nennen 0,10–0,20 $ und 0,30–0,60 $. Scans aus der Kamera gehen direkt als Bild an Mistral. **PDFs** laufen vorher durch die Texterkennung (OCR), die rund 0,2–0,4 ct pro Seite kostet; ein 3-seitiges PDF kostet damit mehr als die eigentliche Prüfung. Preise vor dem Start auf docs.mistral.ai prüfen.
 
 Das sind Schätzungen. Die echten Werte messen wir im geschlossenen Test, die Token-Zahlen stehen in jeder Gemini-Antwort.
 

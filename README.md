@@ -11,6 +11,8 @@ $env:JAVA_HOME = 'C:\Program Files\Android\Android Studio\jbr'
 .\gradlew.bat :app:assembleDebug :app:testDebugUnitTest :app:lintDebug
 ```
 
+**KI:** Standard ist Gemini, wahlweise Mistral (Paris, EU). Test-APK: `briefampel.geminiKey` bzw. `briefampel.ki=mistral` + `briefampel.mistralKey` in `local.properties`, siehe [TESTEN.md](TESTEN.md). Server: [EINRICHTUNG.md](EINRICHTUNG.md).
+
 APK: `app/build/outputs/apk/debug/app-debug.apk`. Ohne eingerichteten KI-Zugang startet eine ausdrücklich markierte Vorschau mit drei interaktiven Beispielbriefen. Die **Debug-Testversion unterstützt jetzt einen eigenen Gemini-API-Schlüssel direkt auf dem Pixel, ohne Firebase**. Es erfolgt keine simulierte KI-Analyse; Antworten auf Beispiele bleiben gesperrt.
 
 Aktueller Prüfnachweis und Grenzen der Tests: [docs/VERIFICATION.md](docs/VERIFICATION.md).

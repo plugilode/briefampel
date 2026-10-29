@@ -5,6 +5,7 @@ import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
 import de.briefampel.app.BuildConfig
+import de.briefampel.app.domain.tr
 import java.security.KeyStore
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
@@ -12,9 +13,10 @@ import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
 /** The encryption key never leaves Android Keystore. The API key is never bundled or logged. */
-internal class PersonalKeyStore(context: Context) : PersonalApi {
-    private val prefs = context.getSharedPreferences("briefampel_personal_api", Context.MODE_PRIVATE)
-    private val alias = "briefampel.gemini.personal.v1"
+internal class PersonalKeyStore(context: Context, override val anbieter: KiAnbieter = KiAnbieter.gewaehlt) : PersonalApi {
+    // Gemini behält die alten Namen, damit ein gespeicherter Schlüssel erhalten bleibt.
+    private val prefs = context.getSharedPreferences(if (anbieter == KiAnbieter.GEMINI) "briefampel_personal_api" else "briefampel_personal_mistral", Context.MODE_PRIVATE)
+    private val alias = if (anbieter == KiAnbieter.GEMINI) "briefampel.gemini.personal.v1" else "briefampel.mistral.personal.v1"
     override val supported = true
     override val configured get() = !read().isNullOrBlank()
     val stored get() = prefs.contains("encrypted")
@@ -22,7 +24,7 @@ internal class PersonalKeyStore(context: Context) : PersonalApi {
     init {
         // Test-APK: einen mitgebauten Schlüssel einmalig verschlüsselt übernehmen.
         // Danach gilt nur noch der gespeicherte; „API-Schlüssel löschen“ bleibt dauerhaft wirksam.
-        val mitgebaut = BuildConfig.TEST_GEMINI_KEY
+        val mitgebaut = if (anbieter == KiAnbieter.GEMINI) BuildConfig.TEST_GEMINI_KEY else BuildConfig.TEST_MISTRAL_KEY
         if (mitgebaut.isNotBlank() && !prefs.getBoolean("testschluessel_uebernommen", false)) {
             try {
                 if (!stored) save(mitgebaut)
@@ -44,7 +46,7 @@ internal class PersonalKeyStore(context: Context) : PersonalApi {
     }
 
     override fun save(key: String) {
-        require(key.length in 20..512 && key.none(Char::isWhitespace)) { "Bitte einen gültigen Gemini-API-Schlüssel eingeben." }
+        require(key.length in 20..512 && key.none(Char::isWhitespace)) { tr("Bitte einen gültigen API-Schlüssel eingeben.") }
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
         cipher.init(Cipher.ENCRYPT_MODE, secret())
         val encrypted = cipher.doFinal(key.toByteArray(Charsets.UTF_8))
